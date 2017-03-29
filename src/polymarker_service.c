@@ -29,6 +29,7 @@
 #include "grassroots_config.h"
 #include "provider.h"
 #include "service_job_set_iterator.h"
+#include "service_job.h"
 
 
 #ifdef _DEBUG

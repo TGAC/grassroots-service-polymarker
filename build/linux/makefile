@@ -32,8 +32,7 @@ INCLUDES = \
 	-I$(DIR_GRASSROOTS_SERVER_INC) \
 	-I$(DIR_GRASSROOTS_PARAMS_INC) \
 	-I$(DIR_JANSSON_INC) \
-	-I$(DIR_UUID_INC) \
-	-I$(DIR_HTSLIB_INC)
+	-I$(DIR_UUID_INC) 
 	
 SRCS 	= \
 	polymarker_service.c \
