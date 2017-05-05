@@ -25,8 +25,9 @@
 
 
 #include "system_polymarker_tool.hpp"
+
+#include "../../../core/server/task/include/system_async_task.h"
 #include "string_utils.h"
-#include "process.h"
 #include "json_util.h"
 #include "alloc_failure.hpp"
 #include "jobs_manager.h"
@@ -170,6 +171,7 @@ bool SystemPolymarkerTool :: Run ()
 
 	if (spt_asynchronous_flag)
 		{
+			/*
 			int32 process_id = CreateProcess (spt_command_line_args_s, NULL, NULL);
 
 			if (process_id >= 0)
@@ -179,6 +181,7 @@ bool SystemPolymarkerTool :: Run ()
 					AddServiceJobToJobsManager (GetJobsManager (), base_job_p -> sj_id, base_job_p);
 					success_flag = true;
 				}
+			*/
 		}
 	else
 		{
@@ -205,7 +208,7 @@ OperationStatus SystemPolymarkerTool :: GetStatus (bool update_flag)
 
 	if (spt_asynchronous_flag)
 		{
-			status = GetProcessStatus (pt_process_id);
+			//status = GetProcessStatus (pt_process_id);
 			SetServiceJobStatus (& (pt_service_job_p -> psj_base_job), status);
 		}
 	else
