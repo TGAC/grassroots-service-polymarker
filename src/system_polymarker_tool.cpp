@@ -26,7 +26,7 @@
 
 #include "system_polymarker_tool.hpp"
 
-#include "../../../core/server/task/include/system_async_task.h"
+#include "system_async_task.h"
 #include "string_utils.h"
 #include "json_util.h"
 #include "alloc_failure.hpp"
