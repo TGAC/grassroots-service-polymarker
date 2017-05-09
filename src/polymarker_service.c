@@ -107,7 +107,7 @@ ServicesArray *GetServices (UserDetails *user_p)
 								ClosePolymarkerService,
 								CustomisePolymarkerServiceJob,
 								true,
-								false,
+								SY_ASYNCHRONOUS_DETACHED,
 								(ServiceData *) data_p);
 							
 							if (GetPolymarkerServiceConfig (data_p))
