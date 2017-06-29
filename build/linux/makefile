@@ -39,7 +39,7 @@ SRCS 	= \
 	polymarker_service.c \
 	polymarker_service_job.c \
 	polymarker_tool.cpp \
-	system_polymarker_tool.cpp
+	async_system_polymarker_tool.cpp
 
 CPPFLAGS += -DPOLYMARKER_LIBRARY_EXPORTS 
 

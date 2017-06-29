@@ -34,7 +34,7 @@ PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const ch
 
 			InitServiceJob (base_service_job_p, service_p, job_name_s, job_description_s, NULL, FreePolymarkerServiceJob, NULL);
 
-			tool_p = CreatePolymarkerTool (data_p, poly_job_p, data_p -> psd_tool_type);
+			tool_p = CreatePolymarkerTool (poly_job_p, data_p, data_p -> psd_tool_type);
 
 			if (tool_p)
 				{
@@ -114,7 +114,7 @@ ServiceJob *GetPolymarkerServiceJobFromJSON (struct Service *service_p, const js
 
 									if (tool_type != PTT_NUM_TYPES)
 										{
-											PolymarkerTool *tool_p = CreatePolymarkerTool (data_p, polymarker_job_p, tool_type);
+											PolymarkerTool *tool_p = CreatePolymarkerTool (polymarker_job_p, data_p, tool_type);
 
 											if (tool_p)
 												{
@@ -216,5 +216,31 @@ json_t *ConvertPolymarkerServiceJobToJSON (Service * UNUSED_PARAM (service_p), S
 	return NULL;
 }
 
+
+
+void PolymarkerServiceJobCompleted (ServiceJob *job_p)
+{
+	if (job_p -> sj_result_p == NULL)
+		{
+			PolymarkerServiceJob *polymarker_job_p = (PolymarkerServiceJob *) job_p;
+
+			if (!DeterminePolymarkerResult (polymarker_job_p))
+				{
+					char uuid_s [UUID_STRING_BUFFER_SIZE];
+
+					ConvertUUIDToString (job_p -> sj_id, uuid_s);
+
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__,  "Failed to get result for \"%s\"", uuid_s);
+				}
+		}
+}
+
+
+bool DeterminePolymarkerResult (PolymarkerServiceJob *polymarker_job_p)
+{
+	bool success_flag = false;
+
+	return success_flag;
+}
 
 

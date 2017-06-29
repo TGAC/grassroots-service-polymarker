@@ -36,15 +36,30 @@
 class POLYMARKER_SERVICE_LOCAL PolymarkerTool
 {
 public:
-	PolymarkerTool (PolymarkerServiceData *data_p, PolymarkerServiceJob *job_p);
+	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p);
+
+	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p);
+
 	virtual ~PolymarkerTool ();
 
 
 	virtual bool ParseParameters (const ParameterSet * const param_set_p) = 0;
 
-	virtual bool Run () = 0;
+	virtual bool PreRun () = 0;
+
+	virtual OperationStatus Run () = 0;
 
 	virtual OperationStatus GetStatus (bool update_flag) = 0;
+
+
+	/**
+	 * Get the log after the PolymarkerTool has finished
+	 * running.
+	 *
+	 * @return The results as a c-style string or 0 upon error.
+	 */
+	virtual char *GetLog () = 0;
+
 
 protected:
 	const PolymarkerServiceData *pt_service_data_p;
@@ -58,7 +73,7 @@ extern "C"
 {
 #endif
 
-PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceData *data_p, PolymarkerServiceJob *job_p, PolymarkerToolType ptt);
+PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, PolymarkerServiceData *data_p, PolymarkerToolType ptt);
 
 
 void FreePolymarkerTool (PolymarkerTool *tool_p);

@@ -33,10 +33,10 @@
 class POLYMARKER_SERVICE_LOCAL SystemPolymarkerTool : public PolymarkerTool
 {
 public:
-	SystemPolymarkerTool (PolymarkerServiceData *data_p, PolymarkerServiceJob *job_p);
+	SystemPolymarkerTool (const PolymarkerServiceData *data_p, PolymarkerServiceJob *job_p);
 	virtual ~SystemPolymarkerTool ();
 
-	virtual bool Run ();
+	virtual OperationStatus Run ();
 
 	virtual OperationStatus GetStatus (bool update_flag);
 

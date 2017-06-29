@@ -89,6 +89,15 @@ POLYMARKER_SERVICE_LOCAL ServiceJob *GetPolymarkerServiceJobFromJSON (struct Ser
 POLYMARKER_SERVICE_LOCAL json_t *ConvertPolymarkerServiceJobToJSON (Service *service_p, ServiceJob *service_job_p);
 
 
+
+POLYMARKER_SERVICE_LOCAL void PolymarkerServiceJobCompleted (ServiceJob *job_p);
+
+
+
+POLYMARKER_SERVICE_LOCAL bool DeterminePolymarkerResult (PolymarkerServiceJob *polymarker_job_p);
+
+
+
 #ifdef __cplusplus
 }
 #endif

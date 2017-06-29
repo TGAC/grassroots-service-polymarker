@@ -24,6 +24,8 @@
 #include "service.h"
 #include "library.h"
 
+#include "async_tasks_manager.h"
+
 /*
 ** Now we use the generic helper definitions above to define LIB_API and LIB_LOCAL.
 ** LIB_API is used for the public API symbols. It either DLL imports or DLL exports
@@ -112,6 +114,9 @@ typedef struct PolymarkerServiceData
 	IndexData *psd_index_data_p;
 
 	size_t psd_index_data_size;
+
+
+	AsyncTasksManager *psd_task_manager_p;
 
 } PolymarkerServiceData;
 
