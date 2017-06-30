@@ -30,11 +30,21 @@
 #include "temp_file.hpp"
 
 
-class POLYMARKER_SERVICE_LOCAL SystemPolymarkerTool : public PolymarkerTool
+class POLYMARKER_SERVICE_LOCAL AsyncSystemPolymarkerTool : public PolymarkerTool
 {
 public:
-	SystemPolymarkerTool (const PolymarkerServiceData *data_p, PolymarkerServiceJob *job_p);
-	virtual ~SystemPolymarkerTool ();
+	AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p);
+
+	AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p);
+
+	virtual ~AsyncSystemPolymarkerTool ();
+
+	virtual bool PreRun ();
+
+	virtual char *GetLog ();
+
+	virtual char *GetResults (PolymarkerFormatter *formatter_p);
+
 
 	virtual OperationStatus Run ();
 
@@ -42,10 +52,13 @@ public:
 
 	virtual bool ParseParameters (const ParameterSet * const param_set_p);
 
+
+	virtual bool AddToJSON (json_t *root_p);
+
 protected:
-	char *spt_executable_s;
-	char *spt_command_line_args_s;
-	bool spt_asynchronous_flag;
+	char *aspt_executable_s;
+	char *aspt_command_line_args_s;
+	bool aspt_asynchronous_flag;
 
 	bool CreateArgs (const char *input_s, char *output_s, char *contigs_s);
 	TempFile *GetInputFile (const char *gene_id_s, const char *target_chromosome_s, const char *sequence_s);
@@ -55,6 +68,12 @@ protected:
 
 private:
 	static uint32 SPT_NUM_ARGS;
+
+	static const char * const ASPT_ASYNC_S;
+	static const char * const ASPT_LOGFILE_S;
+
+	char *aspt_async_logfile_s;
+	SystemAsyncTask *aspt_task_p;
 };
 
 

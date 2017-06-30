@@ -33,6 +33,9 @@
 #include "polymarker_service_job.h"
 
 
+class PolymarkerFormatter;
+
+
 class POLYMARKER_SERVICE_LOCAL PolymarkerTool
 {
 public:
@@ -60,6 +63,11 @@ public:
 	 */
 	virtual char *GetLog () = 0;
 
+
+	virtual char *GetResults (PolymarkerFormatter *formatter_p) = 0;
+
+
+	virtual bool AddToJSON (json_t *root_p);
 
 protected:
 	const PolymarkerServiceData *pt_service_data_p;

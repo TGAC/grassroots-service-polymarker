@@ -73,3 +73,9 @@ PolymarkerTool :: ~PolymarkerTool ()
 {
 
 }
+
+
+bool PolymarkerTool :: AddToJSON (json_t *root_p)
+{
+	return true;
+}
