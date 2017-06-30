@@ -158,7 +158,7 @@ ServiceJob *GetPolymarkerServiceJobFromJSON (struct Service *service_p, const js
 
 
 
-json_t *ConvertPolymarkerServiceJobToJSON (Service * UNUSED_PARAM (service_p), ServiceJob *service_job_p)
+json_t *ConvertPolymarkerServiceJobToJSON (Service * UNUSED_PARAM (service_p), ServiceJob *service_job_p, bool omit_results_flag)
 {
 	json_t *polymarker_job_json_p = json_object ();
 	char uuid_s [UUID_STRING_BUFFER_SIZE];
@@ -171,7 +171,7 @@ json_t *ConvertPolymarkerServiceJobToJSON (Service * UNUSED_PARAM (service_p), S
 
 			if (json_object_set_new (polymarker_job_json_p, JOB_SERVICE_S, json_string (service_name_s)) == 0)
 				{
-					json_t *base_job_json_p = GetServiceJobAsJSON (service_job_p);
+					json_t *base_job_json_p = GetServiceJobAsJSON (service_job_p, omit_results_flag);
 
 					if (base_job_json_p)
 						{

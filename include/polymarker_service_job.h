@@ -86,7 +86,7 @@ POLYMARKER_SERVICE_LOCAL ServiceJob *GetPolymarkerServiceJobFromJSON (struct Ser
  * upon error.
  * @memberof PolymarkerServiceJob
  */
-POLYMARKER_SERVICE_LOCAL json_t *ConvertPolymarkerServiceJobToJSON (Service *service_p, ServiceJob *service_job_p);
+POLYMARKER_SERVICE_LOCAL json_t *ConvertPolymarkerServiceJobToJSON (Service *service_p, ServiceJob *service_job_p, bool omit_results_flag);
 
 
 
