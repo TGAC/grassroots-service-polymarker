@@ -22,8 +22,13 @@ static const char * const PSJ_PROCESS_ID_S = "process_id";
 
 
 
+PolymarkerServiceJob *AllocatePolymarkerServiceJobForDatabase (Service *service_p, const IndexData *db_p, PolymarkerServiceData *data_p)
+{
+	return AllocatePolymarkerServiceJob (service_p, db_p -> id_name_s, db_p -> id_description_s, db_p -> id_fasta_filename_s, data_p);
+}
 
-PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const char *job_name_s, const char *job_description_s, const char *tool_name_s, PolymarkerServiceData *data_p)
+
+PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const char *job_name_s, const char *job_description_s, const char *fasta_s, PolymarkerServiceData *data_p)
 {
 	PolymarkerServiceJob *poly_job_p = (PolymarkerServiceJob *) AllocMemory (sizeof (PolymarkerServiceJob));
 

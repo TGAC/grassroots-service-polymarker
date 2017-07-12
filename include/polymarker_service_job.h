@@ -33,6 +33,9 @@ extern "C"
 {
 #endif
 
+
+POLYMARKER_SERVICE_LOCAL PolymarkerServiceJob *AllocatePolymarkerServiceJobForDatabase (Service *service_p, const IndexData *db_p, PolymarkerServiceData *data_p);
+
 /**
  * Create a PolymarkerServiceJob.
  *
@@ -42,7 +45,7 @@ extern "C"
  * @param data_p The PolymarkerServiceData.
  * @return The newly-allocated PolymarkerServiceJob or <code>NULL</code> upon error.
  */
-POLYMARKER_SERVICE_LOCAL PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const char *job_name_s, const char *job_description_s, const char *tool_name_s, PolymarkerServiceData *data_p);
+POLYMARKER_SERVICE_LOCAL PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const char *job_name_s, const char *job_description_s, const char *fasta_s, PolymarkerServiceData *data_p);
 
 
 /**

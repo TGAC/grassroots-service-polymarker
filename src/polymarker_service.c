@@ -44,7 +44,7 @@
  */
 
 
-static const char * const PS_BLASTDB_S = "Blast database";
+static const char * const PS_SEQUENCE_NAME_S = "Sequence";
 static const char * const PS_FASTA_FILENAME_S = "Fasta";
 static const char * const PS_DATABASE_GROUP_NAME_S = "Available contigs";
 
@@ -80,6 +80,11 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 
 static bool CreateMarkerListFile (const char *marker_file_s, ParameterSet *param_set_p);
+
+
+static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, PolymarkerServiceData *data_p);
+
+static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p);
 
 
 /*
@@ -177,9 +182,6 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 					success_flag = false;
 				}
 
-
-
-
 			index_files_p = json_object_get (polymarker_config_p, "index_files");
 
 			if (index_files_p)
@@ -197,7 +199,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 									json_array_foreach (index_files_p, i, index_file_p)
 										{
-											((data_p -> psd_index_data_p) + i) -> id_blast_db_name_s = GetJSONString (index_file_p, PS_BLASTDB_S);
+											((data_p -> psd_index_data_p) + i) -> id_name_s = GetJSONString (index_file_p, PS_SEQUENCE_NAME_S);
 											((data_p -> psd_index_data_p) + i) -> id_fasta_filename_s = GetJSONString (index_file_p, PS_FASTA_FILENAME_S);
 										}
 
@@ -215,7 +217,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 									if (data_p -> psd_index_data_p)
 										{
-											data_p -> psd_index_data_p -> id_blast_db_name_s = GetJSONString (index_files_p, PS_BLASTDB_S);
+											data_p -> psd_index_data_p -> id_name_s = GetJSONString (index_files_p, PS_SEQUENCE_NAME_S);
 											data_p -> psd_index_data_p -> id_fasta_filename_s = GetJSONString (index_files_p, PS_FASTA_FILENAME_S);
 
 											data_p -> psd_index_data_size = 1;
@@ -225,7 +227,8 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 								}
 						}
 
-				}		/* if (index_files_p) */
+				}		/* if (index_fistatic void PreparePolymarkerServiceJobs (const DatabaseInfo *db_p, const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, BlastServiceData *data_p)
+				les_p) */
 
 		}		/* if (polymarker_config_p) */
 
@@ -317,53 +320,34 @@ static void ReleasePolymarkerServiceParameters (Service * UNUSED_PARAM (service_
 static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails * UNUSED_PARAM (user_p), ProvidersStateTable * UNUSED_PARAM (providers_p))
 {
 	PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
-	service_p -> se_jobs_p = AllocateSimpleServiceJobSet (service_p);
+	service_p -> se_jobs_p = AllocateServiceJobSet (service_p);
 
 	if (service_p -> se_jobs_p)
 		{
-			char uuid_s [UUID_STRING_BUFFER_SIZE];
-			ServiceJob *job_p = ((ServiceJobNode *) (service_p -> se_jobs_p -> sjs_jobs_p -> ll_head_p)) -> sjn_job_p;
-			char *dir_s = NULL;
+			PreparePolymarkerServiceJobs (param_set_p, service_p -> se_jobs_p, data_p);
 
-			/*
-			 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/
-			 *
-			 */
-
-			ConvertUUIDToString (job_p -> sj_id, uuid_s);
-
-			dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
-
-			if (dir_s)
+			if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0)
 				{
-					if (EnsureDirectoryExists (dir_s))
+					ServiceJobSetIterator iterator;
+					PolymarkerServiceJob *job_p = NULL;
+
+					InitServiceJobSetIterator (&iterator, service_p -> se_jobs_p);
+
+					job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
+
+					while (job_p)
 						{
-							char *markers_filename_s = MakeFilename (dir_s, "markers_list");
-
-							if (markers_filename_s)
+							if (!RunPolymarkerJob (job_p, param_set_p, data_p))
 								{
-									if (CreateMarkerListFile (markers_filename_s, param_set_p))
-										{
-											SharedType value;
 
-											/* Get the contig that we are going to run against */
-											if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME, &value, true))
-												{
-
-												}
-
-										}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
-
-									FreeCopiedString (markers_filename_s);
-								}		/* if (markers_filename_s) */
-
-						}		/* if (EnsureDirectoryExists (dir_s)) */
-
-					FreeCopiedString (dir_s);
-				}		/* if (dir_s) */
+								}
 
 
-			if (GetServiceJobSetSize (service_p -> se_jobs_p) == 0)
+							job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
+						}
+
+				}		/* if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0) */
+			else
 				{
 					PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "No jobs specified");
 				}
@@ -371,6 +355,53 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 		}		/* if (service_p -> se_jobs_p) */
 
 	return service_p -> se_jobs_p;
+}
+
+
+static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p)
+{
+	bool success_flag = false;
+	char uuid_s [UUID_STRING_BUFFER_SIZE];
+	char *dir_s = NULL;
+
+	/*
+	 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/
+	 *
+	 */
+
+	ConvertUUIDToString (job_p -> psj_base_job.sj_id, uuid_s);
+
+	dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
+
+	if (dir_s)
+		{
+			if (EnsureDirectoryExists (dir_s))
+				{
+					char *markers_filename_s = MakeFilename (dir_s, "markers_list");
+
+					if (markers_filename_s)
+						{
+							if (CreateMarkerListFile (markers_filename_s, param_set_p))
+								{
+									SharedType value;
+
+									/* Get the contig that we are going to run against */
+									if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME.npt_name_s, &value, true))
+										{
+											//job_p -> psj_tool_p ->
+										}
+
+								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
+
+							FreeCopiedString (markers_filename_s);
+						}		/* if (markers_filename_s) */
+
+				}		/* if (EnsureDirectoryExists (dir_s)) */
+
+			FreeCopiedString (dir_s);
+		}		/* if (dir_s) */
+
+	return success_flag;
 }
 
 
@@ -476,7 +507,7 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 
 			/* default to grassroots */
-			def.st_string_value_s = (char *) (id_p -> id_blast_db_name_s);
+			def.st_string_value_s = (char *) (id_p -> id_name_s);
 
 			param_p = EasyCreateAndAddParameterToParameterSet (& (service_data_p -> psd_base_data), param_set_p, group_p, PS_CONTIG_FILENAME.npt_type, PS_CONTIG_FILENAME.npt_name_s, "Available Contigs", "The Contigs to use", def, PL_ALL);
 
@@ -488,7 +519,7 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 					for (i = 0; i < service_data_p -> psd_index_data_size; ++ i, ++ id_p)
 						{
-							def.st_string_value_s = (char *) (id_p -> id_blast_db_name_s);
+							def.st_string_value_s = (char *) (id_p -> id_name_s);
 
 							if (!CreateAndAddParameterOptionToParameter (param_p, def, NULL))
 								{
@@ -510,4 +541,48 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 	return param_p;
 }
+
+
+static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, PolymarkerServiceData *data_p)
+{
+	IndexData *db_p = data_p -> psd_index_data_p;
+
+	if (db_p)
+		{
+			while (db_p -> id_name_s)
+				{
+					Parameter *param_p = GetParameterFromParameterSetByName (param_set_p, db_p -> id_name_s);
+
+					/* Do we have a matching parameter? */
+					if (param_p)
+						{
+							/* Is the database selected to search against? */
+							if (param_p -> pa_current_value.st_boolean_value)
+								{
+									PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJobForDatabase (jobs_p -> sjs_service_p, db_p, data_p);
+
+									if (job_p)
+										{
+											if (!AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p))
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_p -> id_name_s);
+													FreePolymarkerServiceJob (& (job_p -> psj_base_job));
+												}
+										}
+									else
+										{
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create ServiceJob for \"%s\"", db_p -> id_name_s);
+										}
+
+								}		/* if (param_p -> pa_current_value.st_boolean_value) */
+
+						}		/* if (param_p) */
+
+					++ db_p;
+				}		/* while (db_p) */
+
+		}		/* if (db_p) */
+
+}
+
 

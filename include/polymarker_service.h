@@ -92,8 +92,13 @@ typedef enum
 
 typedef struct IndexData
 {
-	const char *id_blast_db_name_s;
+	/** The name of the database to display to the user. */
+	const char *id_name_s;
+
 	const char *id_fasta_filename_s;
+
+	/** The description of the database to display to the user. */
+	const char *id_description_s;
 } IndexData;
 
 

@@ -147,7 +147,48 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const param_set_p)
 {
-	return true;
+	bool success_flag = false;
+	char uuid_s [UUID_STRING_BUFFER_SIZE];
+	char *dir_s = NULL;
+
+	/*
+	 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/
+	 *
+	 */
+
+	ConvertUUIDToString (pt_service_job_p -> psj_base_job.sj_id, uuid_s);
+
+	dir_s = MakeFilename (pt_service_data_p -> psd_working_dir_s, uuid_s);
+
+	if (dir_s)
+		{
+			if (EnsureDirectoryExists (dir_s))
+				{
+					char *markers_filename_s = MakeFilename (dir_s, "markers_list");
+
+					if (markers_filename_s)
+						{
+							if (CreateMarkerListFile (markers_filename_s, param_set_p))
+								{
+									SharedType value;
+
+									/* Get the contig that we are going to run against */
+									if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME.npt_name_s, &value, true))
+										{
+											aspt_command_line_args_s = ConcatenateVarargsStrings (" -- contigs ", database_s, " -- marker_list ", markers_filename_s, " --output ", dir_s, NULL);
+										}
+
+								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
+
+							FreeCopiedString (markers_filename_s);
+						}		/* if (markers_filename_s) */
+
+				}		/* if (EnsureDirectoryExists (dir_s)) */
+
+			FreeCopiedString (dir_s);
+		}		/* if (dir_s) */
+
+	return success_flag;
 }
 
 
