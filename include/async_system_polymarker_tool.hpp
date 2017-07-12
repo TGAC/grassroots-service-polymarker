@@ -58,7 +58,6 @@ public:
 protected:
 	char *aspt_executable_s;
 	char *aspt_command_line_args_s;
-	bool aspt_asynchronous_flag;
 
 	bool CreateArgs (const char *input_s, char *output_s, char *contigs_s);
 	TempFile *GetInputFile (const char *gene_id_s, const char *target_chromosome_s, const char *sequence_s);

@@ -78,6 +78,10 @@ static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), S
 
 static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_data_p, ParameterSet *param_set_p, ParameterGroup *group_p);
 
+
+static bool CreateMarkerListFile (const char *marker_file_s, ParameterSet *param_set_p);
+
+
 /*
  * API FUNCTIONS
  */
@@ -313,12 +317,50 @@ static void ReleasePolymarkerServiceParameters (Service * UNUSED_PARAM (service_
 static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails * UNUSED_PARAM (user_p), ProvidersStateTable * UNUSED_PARAM (providers_p))
 {
 	PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
-	service_p -> se_jobs_p = AllocateServiceJobSet (service_p);
+	service_p -> se_jobs_p = AllocateSimpleServiceJobSet (service_p);
 
 	if (service_p -> se_jobs_p)
 		{
-			/* Get all of the selected databases and create a PolymarkerServiceJob for each one */
-		//	PreparePolymarkerServiceJobs (param_set_p, service_p -> se_jobs_p, data_p);
+			char uuid_s [UUID_STRING_BUFFER_SIZE];
+			ServiceJob *job_p = ((ServiceJobNode *) (service_p -> se_jobs_p -> sjs_jobs_p -> ll_head_p)) -> sjn_job_p;
+			char *dir_s = NULL;
+
+			/*
+			 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/
+			 *
+			 */
+
+			ConvertUUIDToString (job_p -> sj_id, uuid_s);
+
+			dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
+
+			if (dir_s)
+				{
+					if (EnsureDirectoryExists (dir_s))
+						{
+							char *markers_filename_s = MakeFilename (dir_s, "markers_list");
+
+							if (markers_filename_s)
+								{
+									if (CreateMarkerListFile (markers_filename_s, param_set_p))
+										{
+											SharedType value;
+
+											/* Get the contig that we are going to run against */
+											if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME, &value, true))
+												{
+
+												}
+
+										}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
+
+									FreeCopiedString (markers_filename_s);
+								}		/* if (markers_filename_s) */
+
+						}		/* if (EnsureDirectoryExists (dir_s)) */
+
+					FreeCopiedString (dir_s);
+				}		/* if (dir_s) */
 
 
 			if (GetServiceJobSetSize (service_p -> se_jobs_p) == 0)
@@ -344,6 +386,80 @@ static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), S
 	job_p -> sj_free_fn = FreePolymarkerServiceJob;
 }
 
+
+
+static bool CreateMarkerListFile (const char *marker_file_s, ParameterSet *param_set_p)
+{
+	bool success_flag = false;
+	FILE *marker_f = fopen (marker_file_s, "w");
+
+	if (marker_f)
+		{
+			SharedType value;
+
+			InitSharedType (&value);
+
+			if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true))
+				{
+					if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0)
+						{
+							/* The chromosome is optional */
+							if (GetParameterValueFromParameterSet (param_set_p, PS_TARGET_CHROMOSOME.npt_name_s, &value, true))
+								{
+									if (fprintf (marker_f, "%s,", value.st_string_value_s) < 0)
+										{
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, value.st_string_value_s);
+										}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
+
+								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
+							else
+								{
+									PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s);
+								}
+
+
+							if (GetParameterValueFromParameterSet (param_set_p, PS_SEQUENCE.npt_name_s, &value, true))
+								{
+									if (fprintf (marker_f, "%s", value.st_string_value_s) > 0)
+										{
+											success_flag = true;
+										}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
+									else
+										{
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, value.st_string_value_s);
+										}
+
+								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_SEQUENCE.npt_name_s);
+								}
+
+						}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, value.st_string_value_s);
+						}
+
+				}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_GENE_ID.npt_name_s);
+				}
+
+			if (fclose (marker_f) != 0)
+				{
+					PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to close marker file \"%s\"", marker_file_s);
+				}
+
+		}		/* if (marker_f) */
+	else
+		{
+			PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to open marker file \"%s\"", marker_file_s);
+		}
+
+	return success_flag;
+}
 
 
 /*

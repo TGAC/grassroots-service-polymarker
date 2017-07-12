@@ -50,9 +50,9 @@ static bool UpdateAsyncPolymarkerServiceJob (struct ServiceJob *job_p);
 
 AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p)
 : PolymarkerTool (job_p, data_p),
-	aspt_async_logfile_s (0),
+	aspt_executable_s (0),
 	aspt_command_line_args_s (0),
-	aspt_executable_s (0)
+	aspt_async_logfile_s (0)
 {
 	bool alloc_flag = false;
 	const char *program_name_s = 0;
@@ -89,9 +89,9 @@ AsyncSystemPolymarkerTool :: ~AsyncSystemPolymarkerTool ()
 
 AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p)
 : PolymarkerTool (job_p, data_p, root_p),
-	aspt_async_logfile_s (0),
-	aspt_command_line_args_s (0),
 	aspt_executable_s (0),
+	aspt_command_line_args_s (0),
+	aspt_async_logfile_s (0),
 	aspt_task_p (0)
 {
 	bool alloc_flag = false;
@@ -101,7 +101,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 	if (GetJSONBoolean (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, &async_flag))
 		{
 			char *name_s = NULL;
-			char *Polymarker_program_name_s = NULL;
+			char *polymarker_program_name_s = NULL;
 			bool continue_flag = true;
 			const char *value_s = GetJSONString (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S);
 
@@ -121,8 +121,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 			if (continue_flag)
 				{
-
-					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, Polymarker_program_name_s, PolymarkerServiceJobCompleted);
+					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, polymarker_program_name_s, PolymarkerServiceJobCompleted);
 
 					if (aspt_task_p)
 						{
