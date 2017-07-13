@@ -33,13 +33,15 @@
 class POLYMARKER_SERVICE_LOCAL AsyncSystemPolymarkerTool : public PolymarkerTool
 {
 public:
-	AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p);
+	AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p);
 
-	AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p);
+	AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p,  const PolymarkerServiceData *data_p, const json_t *root_p);
 
 	virtual ~AsyncSystemPolymarkerTool ();
 
 	virtual bool PreRun ();
+
+	virtual bool PostRun ();
 
 	virtual char *GetLog ();
 

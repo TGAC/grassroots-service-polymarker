@@ -26,11 +26,13 @@
 
 #include "async_system_polymarker_tool.hpp"
 #include "polymarker_service_job.h"
+#include "polymarker_utils.h"
 
 #include "string_utils.h"
 #include "jobs_manager.h"
 
 #include "system_async_task.h"
+#include "streams.h"
 
 
 #ifdef _DEBUG
@@ -48,8 +50,8 @@ static bool UpdateAsyncPolymarkerServiceJob (struct ServiceJob *job_p);
 
 
 
-AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p)
-: PolymarkerTool (job_p, data_p),
+AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p)
+: PolymarkerTool (job_p, seq_p, data_p),
 	aspt_executable_s (0),
 	aspt_command_line_args_s (0),
 	aspt_async_logfile_s (0)
@@ -83,12 +85,17 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 AsyncSystemPolymarkerTool :: ~AsyncSystemPolymarkerTool ()
 {
+	if (aspt_command_line_args_s)
+		{
+			FreeCopiedString (aspt_command_line_args_s);
+		}
+
 	FreeSystemAsyncTask (aspt_task_p);
 }
 
 
-AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p)
-: PolymarkerTool (job_p, data_p, root_p),
+AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p,  const PolymarkerServiceData *data_p, const json_t *root_p)
+: PolymarkerTool (job_p, seq_p, data_p, root_p),
 	aspt_executable_s (0),
 	aspt_command_line_args_s (0),
 	aspt_async_logfile_s (0),
@@ -101,7 +108,6 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 	if (GetJSONBoolean (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, &async_flag))
 		{
 			char *name_s = NULL;
-			char *polymarker_program_name_s = NULL;
 			bool continue_flag = true;
 			const char *value_s = GetJSONString (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S);
 
@@ -121,7 +127,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 			if (continue_flag)
 				{
-					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, polymarker_program_name_s, PolymarkerServiceJobCompleted);
+					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, NULL, PolymarkerServiceJobCompleted);
 
 					if (aspt_task_p)
 						{
@@ -175,7 +181,12 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 									/* Get the contig that we are going to run against */
 									if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME.npt_name_s, &value, true))
 										{
-											aspt_command_line_args_s = ConcatenateVarargsStrings (" -- contigs ", database_s, " -- marker_list ", markers_filename_s, " --output ", dir_s, NULL);
+											aspt_command_line_args_s = ConcatenateVarargsStrings (" -- contigs ", pt_seq_p -> ps_fasta_filename_s, " -- marker_list ", markers_filename_s, " --output ", dir_s, NULL);
+
+											if (aspt_command_line_args_s)
+												{
+													success_flag = true;
+												}
 										}
 
 								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
@@ -200,10 +211,17 @@ bool AsyncSystemPolymarkerTool :: PreRun ()
 }
 
 
+bool AsyncSystemPolymarkerTool :: PostRun ()
+{
+	return true;
+}
+
+
+
+
 OperationStatus AsyncSystemPolymarkerTool :: Run ()
 {
 	OperationStatus status = OS_FAILED_TO_START;
-	const char *command_line_s = 0;
 	char uuid_s [UUID_STRING_BUFFER_SIZE];
 	ServiceJob *base_job_p = & (pt_service_job_p -> psj_base_job);
 
@@ -211,14 +229,14 @@ OperationStatus AsyncSystemPolymarkerTool :: Run ()
 
 	SetServiceJobStatus (base_job_p, status);
 
-	if (command_line_s)
+	if (aspt_command_line_args_s)
 		{
-			if (SetSystemAsyncTaskCommand	(aspt_task_p, command_line_s))
+			if (SetSystemAsyncTaskCommand	(aspt_task_p, aspt_command_line_args_s))
 				{
 					JobsManager *manager_p = GetJobsManager ();
 
 					#if ASYNC_SYSTEM_POLYMARKER_TOOL_DEBUG >= STM_LEVEL_FINE
-					PrintLog (STM_LEVEL_FINE, __FILE__, __LINE__, "About to run SystemPolymarkerTool with \"%s\"", command_line_s);
+					PrintLog (STM_LEVEL_FINE, __FILE__, __LINE__, "About to run SystemPolymarkerTool with \"%s\"", aspt_command_line_args_s);
 					#endif
 
 					if (AddServiceJobToJobsManager (manager_p, base_job_p -> sj_id, base_job_p))
@@ -251,8 +269,11 @@ OperationStatus AsyncSystemPolymarkerTool :: Run ()
 			else
 				{
 					SetServiceJobStatus (base_job_p, status);
-					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set command \"%s\" for uuid \"%s\"", command_line_s, uuid_s);
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set command \"%s\" for uuid \"%s\"", aspt_command_line_args_s, uuid_s);
 				}
+
+
+			PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "\"%s\" returned %d", aspt_command_line_args_s, status);
 		}
 	else
 		{
@@ -264,8 +285,6 @@ OperationStatus AsyncSystemPolymarkerTool :: Run ()
 			char *log_s = GetLog ();
 
 			SetServiceJobStatus (base_job_p, status);
-
-			PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "\"%s\" returned %d", command_line_s, status);
 
 			if (log_s)
 				{

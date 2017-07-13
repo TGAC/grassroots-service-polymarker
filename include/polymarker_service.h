@@ -90,16 +90,16 @@ typedef enum
 
 
 
-typedef struct IndexData
+typedef struct PolymarkerSequence
 {
 	/** The name of the database to display to the user. */
-	const char *id_name_s;
+	const char *ps_name_s;
 
-	const char *id_fasta_filename_s;
+	const char *ps_fasta_filename_s;
 
 	/** The description of the database to display to the user. */
-	const char *id_description_s;
-} IndexData;
+	const char *ps_description_s;
+} PolymarkerSequence;
 
 
 typedef struct PolymarkerServiceData
@@ -116,7 +116,7 @@ typedef struct PolymarkerServiceData
 
 	const char *psd_executable_s;
 
-	IndexData *psd_index_data_p;
+	PolymarkerSequence *psd_index_data_p;
 
 	size_t psd_index_data_size;
 

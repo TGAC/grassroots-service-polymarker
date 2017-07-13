@@ -30,6 +30,8 @@
 #include "provider.h"
 #include "service_job_set_iterator.h"
 #include "service_job.h"
+#include "polymarker_utils.h"
+#include "polymarker_tool.hpp"
 
 
 #ifdef _DEBUG
@@ -79,12 +81,15 @@ static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), S
 static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_data_p, ParameterSet *param_set_p, ParameterGroup *group_p);
 
 
-static bool CreateMarkerListFile (const char *marker_file_s, ParameterSet *param_set_p);
-
 
 static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, PolymarkerServiceData *data_p);
 
 static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p);
+
+
+static char *CreateGroupName (const char *server_s);
+
+static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *param_set_p);
 
 
 /*
@@ -169,6 +174,22 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 						{
 							data_p -> psd_tool_type = PTT_WEB;
 						}
+					else if (strcmp (config_value_s, PS_TOOL_SYSTEM_S) == 0)
+						{
+							data_p -> psd_tool_type = PTT_SYSTEM;
+						}
+				}
+
+
+			if (data_p -> psd_tool_type == PTT_SYSTEM)
+				{
+					data_p -> psd_task_manager_p = AllocateAsyncTasksManager (GetServiceName (data_p -> psd_base_data.sd_service_p));
+
+					if (! (data_p -> psd_task_manager_p))
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "AllocateAsyncTasksManager failed");
+							success_flag = false;
+						}
 				}
 
 			config_value_s = GetJSONString (polymarker_config_p, WORKING_DIRECTORY_KEY_S);
@@ -190,7 +211,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 						{
 							size_t size = json_array_size (index_files_p);
 
-							data_p -> psd_index_data_p = (IndexData *) AllocMemoryArray (sizeof (IndexData), size);
+							data_p -> psd_index_data_p = (PolymarkerSequence *) AllocMemoryArray (sizeof (PolymarkerSequence), size);
 
 							if (data_p -> psd_index_data_p)
 								{
@@ -199,8 +220,8 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 									json_array_foreach (index_files_p, i, index_file_p)
 										{
-											((data_p -> psd_index_data_p) + i) -> id_name_s = GetJSONString (index_file_p, PS_SEQUENCE_NAME_S);
-											((data_p -> psd_index_data_p) + i) -> id_fasta_filename_s = GetJSONString (index_file_p, PS_FASTA_FILENAME_S);
+											((data_p -> psd_index_data_p) + i) -> ps_name_s = GetJSONString (index_file_p, PS_SEQUENCE_NAME_S);
+											((data_p -> psd_index_data_p) + i) -> ps_fasta_filename_s = GetJSONString (index_file_p, PS_FASTA_FILENAME_S);
 										}
 
 									data_p -> psd_index_data_size = size;
@@ -213,12 +234,12 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 						{
 							if (json_is_object (index_files_p))
 								{
-									data_p -> psd_index_data_p = (IndexData *) AllocMemoryArray (sizeof (IndexData), 1);
+									data_p -> psd_index_data_p = (PolymarkerSequence *) AllocMemoryArray (sizeof (PolymarkerSequence), 1);
 
 									if (data_p -> psd_index_data_p)
 										{
-											data_p -> psd_index_data_p -> id_name_s = GetJSONString (index_files_p, PS_SEQUENCE_NAME_S);
-											data_p -> psd_index_data_p -> id_fasta_filename_s = GetJSONString (index_files_p, PS_FASTA_FILENAME_S);
+											data_p -> psd_index_data_p -> ps_name_s = GetJSONString (index_files_p, PS_SEQUENCE_NAME_S);
+											data_p -> psd_index_data_p -> ps_fasta_filename_s = GetJSONString (index_files_p, PS_FASTA_FILENAME_S);
 
 											data_p -> psd_index_data_size = 1;
 
@@ -227,8 +248,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 								}
 						}
 
-				}		/* if (index_fistatic void PreparePolymarkerServiceJobs (const DatabaseInfo *db_p, const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, BlastServiceData *data_p)
-				les_p) */
+				}		/* if (index_files_p) */
 
 		}		/* if (polymarker_config_p) */
 
@@ -247,6 +267,8 @@ static PolymarkerServiceData *AllocatePolymarkerServiceData (Service * UNUSED_PA
 	data_p -> psd_index_data_p = NULL;
 	data_p -> psd_index_data_size = 0;
 	data_p -> psd_working_dir_s = NULL;
+	data_p -> psd_task_manager_p = NULL;
+	data_p -> psd_tool_type = PTT_NUM_TYPES;
 
 	return data_p;
 }
@@ -254,6 +276,16 @@ static PolymarkerServiceData *AllocatePolymarkerServiceData (Service * UNUSED_PA
 
 static void FreePolymarkerServiceData (PolymarkerServiceData *data_p)
 {
+	if (data_p -> psd_index_data_p)
+		{
+			FreeMemory (data_p -> psd_index_data_p);
+		}
+
+	if (data_p -> psd_task_manager_p)
+		{
+			FreeAsyncTasksManager (data_p -> psd_task_manager_p);
+		}
+
 	FreeMemory (data_p);
 }
 
@@ -287,16 +319,25 @@ static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resourc
 			PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
 			Parameter *param_p = NULL;
 			SharedType def;
+			ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet ("Sequence parameters", NULL, & (data_p -> psd_base_data), param_set_p);
+
+
+			if (!group_p)
+				{
+					PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to create Polymarker service Sequence parameters group");
+				}
 
 			def.st_string_value_s = NULL;
 
-			if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, NULL, PS_GENE_ID.npt_type, PS_GENE_ID.npt_name_s, "Gene ID", "An unique identifier for the assay", def, PL_ALL)) != NULL)
+			if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_GENE_ID.npt_type, PS_GENE_ID.npt_name_s, "Gene ID", "An unique identifier for the assay", def, PL_ALL)) != NULL)
 				{
-					if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, NULL, PS_TARGET_CHROMOSOME.npt_type, PS_TARGET_CHROMOSOME.npt_name_s, "Target Chromosome", "The chromosome to use", def, PL_ALL)) != NULL)
+					if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_TARGET_CHROMOSOME.npt_type, PS_TARGET_CHROMOSOME.npt_name_s, "Target Chromosome", "The chromosome to use", def, PL_ALL)) != NULL)
 						{
-							if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, NULL, PS_SEQUENCE.npt_type, PS_SEQUENCE.npt_name_s, "Sequence surrounding the polymorphisms", "The SNP must be marked in the format [A/T] for a varietal SNP with alternative bases, A or T",  def, PL_ALL)) != NULL)
+							if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_SEQUENCE.npt_type, PS_SEQUENCE.npt_name_s, "Sequence surrounding the polymorphisms", "The SNP must be marked in the format [A/T] for a varietal SNP with alternative bases, A or T",  def, PL_ALL)) != NULL)
 								{
-									if (SetUpDatabasesParameter (data_p, param_set_p, NULL))
+									uint16 num_dbs = AddDatabaseParams (data_p, param_set_p);
+
+									if (num_dbs > 0)
 										{
 											return param_set_p;
 										}
@@ -361,7 +402,7 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p)
 {
 	bool success_flag = false;
-	char uuid_s [UUID_STRING_BUFFER_SIZE];
+	char uups_s [UUID_STRING_BUFFER_SIZE];
 	char *dir_s = NULL;
 
 	/*
@@ -369,9 +410,9 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 	 *
 	 */
 
-	ConvertUUIDToString (job_p -> psj_base_job.sj_id, uuid_s);
+	ConvertUUIDToString (job_p -> psj_base_job.sj_id, uups_s);
 
-	dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
+	dir_s = MakeFilename (data_p -> psd_working_dir_s, uups_s);
 
 	if (dir_s)
 		{
@@ -388,7 +429,22 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 									/* Get the contig that we are going to run against */
 									if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME.npt_name_s, &value, true))
 										{
-											//job_p -> psj_tool_p ->
+											OperationStatus status = RunPolymarkerTool (job_p -> psj_tool_p);
+
+											switch (status)
+												{
+													case OS_STARTED:
+													case OS_PENDING:
+													case OS_FINISHED:
+													case OS_PARTIALLY_SUCCEEDED:
+													case OS_SUCCEEDED:
+														success_flag = true;
+														break;
+
+													default:
+														break;
+												}
+
 										}
 
 								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
@@ -419,78 +475,6 @@ static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), S
 
 
 
-static bool CreateMarkerListFile (const char *marker_file_s, ParameterSet *param_set_p)
-{
-	bool success_flag = false;
-	FILE *marker_f = fopen (marker_file_s, "w");
-
-	if (marker_f)
-		{
-			SharedType value;
-
-			InitSharedType (&value);
-
-			if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true))
-				{
-					if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0)
-						{
-							/* The chromosome is optional */
-							if (GetParameterValueFromParameterSet (param_set_p, PS_TARGET_CHROMOSOME.npt_name_s, &value, true))
-								{
-									if (fprintf (marker_f, "%s,", value.st_string_value_s) < 0)
-										{
-											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, value.st_string_value_s);
-										}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
-
-								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
-							else
-								{
-									PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s);
-								}
-
-
-							if (GetParameterValueFromParameterSet (param_set_p, PS_SEQUENCE.npt_name_s, &value, true))
-								{
-									if (fprintf (marker_f, "%s", value.st_string_value_s) > 0)
-										{
-											success_flag = true;
-										}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
-									else
-										{
-											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, value.st_string_value_s);
-										}
-
-								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
-							else
-								{
-									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_SEQUENCE.npt_name_s);
-								}
-
-						}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
-					else
-						{
-							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, value.st_string_value_s);
-						}
-
-				}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
-			else
-				{
-					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_GENE_ID.npt_name_s);
-				}
-
-			if (fclose (marker_f) != 0)
-				{
-					PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to close marker file \"%s\"", marker_file_s);
-				}
-
-		}		/* if (marker_f) */
-	else
-		{
-			PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to open marker file \"%s\"", marker_file_s);
-		}
-
-	return success_flag;
-}
 
 
 /*
@@ -503,11 +487,11 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 	if (service_data_p -> psd_index_data_size)
 		{
 			SharedType def;
-			IndexData *id_p = service_data_p -> psd_index_data_p;
+			PolymarkerSequence *ps_p = service_data_p -> psd_index_data_p;
 
 
 			/* default to grassroots */
-			def.st_string_value_s = (char *) (id_p -> id_name_s);
+			def.st_string_value_s = (char *) (ps_p -> ps_name_s);
 
 			param_p = EasyCreateAndAddParameterToParameterSet (& (service_data_p -> psd_base_data), param_set_p, group_p, PS_CONTIG_FILENAME.npt_type, PS_CONTIG_FILENAME.npt_name_s, "Available Contigs", "The Contigs to use", def, PL_ALL);
 
@@ -517,9 +501,9 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 					bool success_flag = true;
 
-					for (i = 0; i < service_data_p -> psd_index_data_size; ++ i, ++ id_p)
+					for (i = 0; i < service_data_p -> psd_index_data_size; ++ i, ++ ps_p)
 						{
-							def.st_string_value_s = (char *) (id_p -> id_name_s);
+							def.st_string_value_s = (char *) (ps_p -> ps_name_s);
 
 							if (!CreateAndAddParameterOptionToParameter (param_p, def, NULL))
 								{
@@ -545,44 +529,124 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, PolymarkerServiceData *data_p)
 {
-	IndexData *db_p = data_p -> psd_index_data_p;
+	PolymarkerSequence *db_p = data_p -> psd_index_data_p;
+	size_t i = 0;
 
-	if (db_p)
+	for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
 		{
-			while (db_p -> id_name_s)
+			Parameter *param_p = GetParameterFromParameterSetByName (param_set_p, db_p -> ps_name_s);
+
+			/* Do we have a matching parameter? */
+			if (param_p)
 				{
-					Parameter *param_p = GetParameterFromParameterSetByName (param_set_p, db_p -> id_name_s);
-
-					/* Do we have a matching parameter? */
-					if (param_p)
+					/* Is the database selected to search against? */
+					if (param_p -> pa_current_value.st_boolean_value)
 						{
-							/* Is the database selected to search against? */
-							if (param_p -> pa_current_value.st_boolean_value)
+							PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (jobs_p -> sjs_service_p, db_p, data_p);
+
+							if (job_p)
 								{
-									PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJobForDatabase (jobs_p -> sjs_service_p, db_p, data_p);
-
-									if (job_p)
+									if (!AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p))
 										{
-											if (!AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p))
-												{
-													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_p -> id_name_s);
-													FreePolymarkerServiceJob (& (job_p -> psj_base_job));
-												}
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_p -> ps_name_s);
+											FreePolymarkerServiceJob (& (job_p -> psj_base_job));
 										}
-									else
-										{
-											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create ServiceJob for \"%s\"", db_p -> id_name_s);
-										}
+								}
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create ServiceJob for \"%s\"", db_p -> ps_name_s);
+								}
 
-								}		/* if (param_p -> pa_current_value.st_boolean_value) */
+						}		/* if (param_p -> pa_current_value.st_boolean_value) */
 
-						}		/* if (param_p) */
+				}		/* if (param_p) */
 
-					++ db_p;
-				}		/* while (db_p) */
-
-		}		/* if (db_p) */
+		}
 
 }
+
+
+
+
+/*
+ * The list of databases that can be searched
+ */
+static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *param_set_p)
+{
+	uint16 num_added_databases = 0;
+	SharedType def;
+
+	if (data_p -> psd_index_data_size > 0)
+		{
+			ParameterGroup *group_p = NULL;
+			char *group_s = NULL;
+			const json_t *provider_p = NULL;
+			const char *group_to_use_s = NULL;
+			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
+			size_t i = 0;
+
+			provider_p = GetGlobalConfigValue (SERVER_PROVIDER_S);
+
+			if (provider_p)
+				{
+					const char *provider_s = GetProviderName (provider_p);
+
+					if (provider_s)
+						{
+							group_s = CreateGroupName (provider_s);
+						}
+				}
+
+			group_to_use_s = group_s ? group_s : PS_DATABASE_GROUP_NAME_S;
+
+			group_p = CreateAndAddParameterGroupToParameterSet (group_to_use_s, NULL, & (data_p -> psd_base_data), param_set_p);
+
+			for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
+				{
+
+					if (EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, PT_BOOLEAN, db_p -> ps_name_s, db_p -> ps_name_s, db_p -> ps_description_s, def, PL_ALL))
+						{
+							++ num_added_databases;
+						}
+					else
+						{
+							PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to add database \"%s\"", db_p -> ps_name_s);
+						}
+
+				}
+
+
+			if (group_s)
+				{
+					FreeCopiedString (group_s);
+				}
+
+		}		/* if (num_group_params) */
+
+	return num_added_databases;
+}
+
+
+
+
+static char *CreateGroupName (const char *server_s)
+{
+	char *group_name_s = ConcatenateVarargsStrings (PS_DATABASE_GROUP_NAME_S, " provided by ", server_s, NULL);
+
+	if (group_name_s)
+		{
+			#if PAIRED_BLAST_SERVICE_DEBUG >= STM_LEVEL_FINER
+			PrintLog (STM_LEVEL_FINER, __FILE__, __LINE__, "Created group name \"%s\" for \"%s\" and \"%s\"", group_name_s, server_s);
+			#endif
+		}
+	else
+		{
+			PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to create group name for \"%s\"", group_name_s);
+		}
+
+	return group_name_s;
+}
+
+
 
 

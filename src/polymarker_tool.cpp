@@ -27,14 +27,14 @@
 #include "async_system_polymarker_tool.hpp"
 
 
-PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, PolymarkerServiceData *data_p, PolymarkerToolType ptt)
+PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, PolymarkerServiceData *data_p)
 {
 	PolymarkerTool *tool_p = 0;
 
-	switch (ptt)
+	switch (data_p -> psd_tool_type)
 		{
 			case PTT_SYSTEM:
-				tool_p = new AsyncSystemPolymarkerTool (job_p, data_p);
+				tool_p = new AsyncSystemPolymarkerTool (job_p, seq_p, data_p);
 				break;
 
 			case PTT_WEB:
@@ -52,8 +52,30 @@ void FreePolymarkerTool (PolymarkerTool *tool_p)
 }
 
 
-PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p)
-	: pt_service_data_p  (data_p), pt_service_job_p (job_p)
+OperationStatus RunPolymarkerTool (PolymarkerTool *tool_p)
+{
+	OperationStatus status = OS_IDLE;
+
+	if (tool_p -> PreRun  ())
+		{
+			status = tool_p -> Run ();
+
+			tool_p -> PostRun  ();
+		}
+	else
+		{
+			status = OS_FAILED_TO_START;
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to prepare run of PolymarkerTool %s", tool_p ->  GetName ());
+		}
+
+	return status;
+}
+
+
+
+
+PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p)
+	:  pt_service_job_p (job_p), pt_seq_p (seq_p), pt_service_data_p  (data_p)
 {
 	job_p -> psj_tool_p = this;
 	pt_process_id = 0;
@@ -61,9 +83,10 @@ PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerS
 
 
 
-PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p)
+PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p, const json_t *root_p)
 {
 	pt_service_data_p = data_p;
+	pt_seq_p = seq_p;
 	pt_service_job_p = job_p;
 }
 
@@ -72,6 +95,13 @@ PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerS
 PolymarkerTool :: ~PolymarkerTool ()
 {
 
+}
+
+
+
+const char *PolymarkerTool :: GetName ()
+{
+	return (pt_seq_p ? pt_seq_p -> ps_name_s : NULL);
 }
 
 

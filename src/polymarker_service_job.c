@@ -22,13 +22,7 @@ static const char * const PSJ_PROCESS_ID_S = "process_id";
 
 
 
-PolymarkerServiceJob *AllocatePolymarkerServiceJobForDatabase (Service *service_p, const IndexData *db_p, PolymarkerServiceData *data_p)
-{
-	return AllocatePolymarkerServiceJob (service_p, db_p -> id_name_s, db_p -> id_description_s, db_p -> id_fasta_filename_s, data_p);
-}
-
-
-PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const char *job_name_s, const char *job_description_s, const char *fasta_s, PolymarkerServiceData *data_p)
+PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const PolymarkerSequence *db_p, PolymarkerServiceData *data_p)
 {
 	PolymarkerServiceJob *poly_job_p = (PolymarkerServiceJob *) AllocMemory (sizeof (PolymarkerServiceJob));
 
@@ -37,9 +31,9 @@ PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const ch
 			PolymarkerTool *tool_p = NULL;
 			ServiceJob * const base_service_job_p = & (poly_job_p -> psj_base_job);
 
-			InitServiceJob (base_service_job_p, service_p, job_name_s, job_description_s, NULL, NULL, FreePolymarkerServiceJob, NULL);
+			InitServiceJob (base_service_job_p, service_p, db_p -> ps_name_s, db_p -> ps_description_s, NULL, NULL, FreePolymarkerServiceJob, NULL);
 
-			tool_p = CreatePolymarkerTool (poly_job_p, data_p, data_p -> psd_tool_type);
+			tool_p = CreatePolymarkerTool (poly_job_p, db_p, data_p);
 
 			if (tool_p)
 				{
@@ -119,7 +113,12 @@ ServiceJob *GetPolymarkerServiceJobFromJSON (struct Service *service_p, const js
 
 									if (tool_type != PTT_NUM_TYPES)
 										{
-											PolymarkerTool *tool_p = CreatePolymarkerTool (polymarker_job_p, data_p, tool_type);
+											PolymarkerTool *tool_p = NULL;
+											PolymarkerSequence *seq_p = NULL;
+
+											data_p -> psd_tool_type = tool_type;
+
+											tool_p = CreatePolymarkerTool (polymarker_job_p, seq_p, data_p);
 
 											if (tool_p)
 												{

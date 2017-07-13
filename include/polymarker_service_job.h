@@ -34,18 +34,16 @@ extern "C"
 #endif
 
 
-POLYMARKER_SERVICE_LOCAL PolymarkerServiceJob *AllocatePolymarkerServiceJobForDatabase (Service *service_p, const IndexData *db_p, PolymarkerServiceData *data_p);
 
 /**
  * Create a PolymarkerServiceJob.
  *
  * @param service_p The Polymarker service.
- * @param job_name_s The name of the PolymarkerServiceJob.
- * @param job_description_s The description of the PolymarkerServiceJob. This can be <code>NULL</code>.
+ * @param db_p The PolymarkerSequence that this PolymarkerServiceJob will run against.
  * @param data_p The PolymarkerServiceData.
  * @return The newly-allocated PolymarkerServiceJob or <code>NULL</code> upon error.
  */
-POLYMARKER_SERVICE_LOCAL PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const char *job_name_s, const char *job_description_s, const char *fasta_s, PolymarkerServiceData *data_p);
+POLYMARKER_SERVICE_LOCAL PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const PolymarkerSequence *db_p, PolymarkerServiceData *data_p);
 
 
 /**

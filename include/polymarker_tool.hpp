@@ -39,11 +39,14 @@ class PolymarkerFormatter;
 class POLYMARKER_SERVICE_LOCAL PolymarkerTool
 {
 public:
-	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p);
+	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p);
 
-	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerServiceData *data_p, const json_t *root_p);
+	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p, const json_t *root_p);
 
 	virtual ~PolymarkerTool ();
+
+
+	const char *GetName ();
 
 
 	virtual bool ParseParameters (const ParameterSet * const param_set_p) = 0;
@@ -51,6 +54,8 @@ public:
 	virtual bool PreRun () = 0;
 
 	virtual OperationStatus Run () = 0;
+
+	virtual bool PostRun () = 0;
 
 	virtual OperationStatus GetStatus (bool update_flag) = 0;
 
@@ -70,8 +75,9 @@ public:
 	virtual bool AddToJSON (json_t *root_p);
 
 protected:
-	const PolymarkerServiceData *pt_service_data_p;
 	PolymarkerServiceJob *pt_service_job_p;
+	const PolymarkerSequence *pt_seq_p;
+	const PolymarkerServiceData *pt_service_data_p;
 	int32 pt_process_id;
 };
 
@@ -81,10 +87,14 @@ extern "C"
 {
 #endif
 
-PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, PolymarkerServiceData *data_p, PolymarkerToolType ptt);
+PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p);
 
 
 void FreePolymarkerTool (PolymarkerTool *tool_p);
+
+
+OperationStatus RunPolymarkerTool (PolymarkerTool *tool_p);
+
 
 #ifdef __cplusplus
 }
