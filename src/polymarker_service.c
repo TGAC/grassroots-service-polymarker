@@ -92,6 +92,10 @@ static char *CreateGroupName (const char *server_s);
 static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *param_set_p);
 
 
+static bool PreRunJobs (PolymarkerServiceData *data_p);
+
+
+
 /*
  * API FUNCTIONS
  */
@@ -369,22 +373,29 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 
 			if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0)
 				{
-					ServiceJobSetIterator iterator;
-					PolymarkerServiceJob *job_p = NULL;
-
-					InitServiceJobSetIterator (&iterator, service_p -> se_jobs_p);
-
-					job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
-
-					while (job_p)
+					if (PreRunJobs (data_p))
 						{
-							if (!RunPolymarkerJob (job_p, param_set_p, data_p))
-								{
+							ServiceJobSetIterator iterator;
+							PolymarkerServiceJob *job_p = NULL;
 
-								}
-
+							InitServiceJobSetIterator (&iterator, service_p -> se_jobs_p);
 
 							job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
+
+							while (job_p)
+								{
+									if (job_p -> psj_tool_p -> ParseParameters (param_set_p))
+										{
+											if (!RunPolymarkerJob (job_p, param_set_p, data_p))
+												{
+
+												}
+
+										}
+
+									job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
+								}
+
 						}
 
 				}		/* if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0) */
@@ -402,7 +413,7 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p)
 {
 	bool success_flag = false;
-	char uups_s [UUID_STRING_BUFFER_SIZE];
+	char uuid_s [UUID_STRING_BUFFER_SIZE];
 	char *dir_s = NULL;
 
 	/*
@@ -410,9 +421,9 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 	 *
 	 */
 
-	ConvertUUIDToString (job_p -> psj_base_job.sj_id, uups_s);
+	ConvertUUIDToString (job_p -> psj_base_job.sj_id, uuid_s);
 
-	dir_s = MakeFilename (data_p -> psd_working_dir_s, uups_s);
+	dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
 
 	if (dir_s)
 		{
@@ -424,28 +435,22 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 						{
 							if (CreateMarkerListFile (markers_filename_s, param_set_p))
 								{
-									SharedType value;
+									OperationStatus status = RunPolymarkerTool (job_p -> psj_tool_p);
 
-									/* Get the contig that we are going to run against */
-									if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME.npt_name_s, &value, true))
+									switch (status)
 										{
-											OperationStatus status = RunPolymarkerTool (job_p -> psj_tool_p);
+											case OS_STARTED:
+											case OS_PENDING:
+											case OS_FINISHED:
+											case OS_PARTIALLY_SUCCEEDED:
+											case OS_SUCCEEDED:
+												success_flag = true;
+												break;
 
-											switch (status)
-												{
-													case OS_STARTED:
-													case OS_PENDING:
-													case OS_FINISHED:
-													case OS_PARTIALLY_SUCCEEDED:
-													case OS_SUCCEEDED:
-														success_flag = true;
-														break;
-
-													default:
-														break;
-												}
-
+											default:
+												break;
 										}
+
 
 								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
 
@@ -647,6 +652,19 @@ static char *CreateGroupName (const char *server_s)
 	return group_name_s;
 }
 
+
+static bool PreRunJobs (PolymarkerServiceData *data_p)
+{
+	if (data_p -> psd_task_manager_p)
+		{
+			PrepareAsyncTasksManager (data_p -> psd_task_manager_p);
+
+			/* If we have asynchronous jobs running then set the "is running" flag for this service */
+			SetServiceRunning (data_p ->  psd_base_data.sd_service_p, true);
+		}
+
+	return true;
+}
 
 
 

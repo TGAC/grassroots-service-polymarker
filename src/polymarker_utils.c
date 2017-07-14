@@ -63,13 +63,16 @@ bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_
 
 							if (GetParameterValueFromParameterSet (param_set_p, PS_SEQUENCE.npt_name_s, &value, true))
 								{
-									if (fprintf (marker_f, "%s", value.st_string_value_s) > 0)
+									if (value.st_string_value_s)
 										{
-											success_flag = true;
-										}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
-									else
-										{
-											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, value.st_string_value_s);
+											if (fprintf (marker_f, "%s", value.st_string_value_s) > 0)
+												{
+													success_flag = true;
+												}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
+											else
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, value.st_string_value_s);
+												}
 										}
 
 								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */

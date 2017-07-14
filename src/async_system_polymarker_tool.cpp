@@ -176,17 +176,11 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 						{
 							if (CreateMarkerListFile (markers_filename_s, param_set_p))
 								{
-									SharedType value;
+									aspt_command_line_args_s = ConcatenateVarargsStrings (" -- contigs ", pt_seq_p -> ps_fasta_filename_s, " -- marker_list ", markers_filename_s, " --output ", dir_s, NULL);
 
-									/* Get the contig that we are going to run against */
-									if (GetParameterValueFromParameterSet (param_set_p, PS_CONTIG_FILENAME.npt_name_s, &value, true))
+									if (aspt_command_line_args_s)
 										{
-											aspt_command_line_args_s = ConcatenateVarargsStrings (" -- contigs ", pt_seq_p -> ps_fasta_filename_s, " -- marker_list ", markers_filename_s, " --output ", dir_s, NULL);
-
-											if (aspt_command_line_args_s)
-												{
-													success_flag = true;
-												}
+											success_flag = true;
 										}
 
 								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
