@@ -58,7 +58,7 @@ public:
 	virtual bool AddToJSON (json_t *root_p);
 
 protected:
-	char *aspt_executable_s;
+	const char *aspt_executable_s;
 	char *aspt_command_line_args_s;
 
 	bool CreateArgs (const char *input_s, char *output_s, char *contigs_s);
@@ -67,11 +67,15 @@ protected:
 	bool GetStringParameter (const ParameterSet * const params_p, const char *param_name_s, char **param_value_ss);
 	void FreeCommandLineArgs ();
 
+	bool SetExecuteable (const PolymarkerServiceData *data_p);
+
+
 private:
 	static uint32 SPT_NUM_ARGS;
 
 	static const char * const ASPT_ASYNC_S;
 	static const char * const ASPT_LOGFILE_S;
+	static const char * const ASPT_EXECUTEABLE_S;
 
 	char *aspt_async_logfile_s;
 	SystemAsyncTask *aspt_task_p;

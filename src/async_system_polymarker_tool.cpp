@@ -30,7 +30,7 @@
 
 #include "string_utils.h"
 #include "jobs_manager.h"
-
+#include "json_util.h"
 #include "system_async_task.h"
 #include "streams.h"
 
@@ -44,6 +44,9 @@
 const char * const AsyncSystemPolymarkerTool :: ASPT_ASYNC_S = "async";
 
 const char * const AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S = "logfile";
+
+
+const char * const AsyncSystemPolymarkerTool :: ASPT_EXECUTEABLE_S = "executeable";
 
 
 static bool UpdateAsyncPolymarkerServiceJob (struct ServiceJob *job_p);
@@ -62,19 +65,23 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 	SetServiceJobUpdateFunction (& (job_p -> psj_base_job), UpdateAsyncPolymarkerServiceJob);
 
-	aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, program_name_s, PolymarkerServiceJobCompleted);
-
-	if (aspt_task_p)
+	if (SetExecuteable (data_p))
 		{
-			if (AddAsyncTaskToAsyncTasksManager (data_p -> psd_task_manager_p, aspt_task_p -> std_async_task_p, MF_SHADOW_USE))
+			aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, program_name_s, PolymarkerServiceJobCompleted);
+
+			if (aspt_task_p)
 				{
-					alloc_flag = true;
-				}
-			else
-				{
-					FreeSystemAsyncTask (aspt_task_p);
+					if (AddAsyncTaskToAsyncTasksManager (data_p -> psd_task_manager_p, aspt_task_p -> std_async_task_p, MF_SHADOW_USE))
+						{
+							alloc_flag = true;
+						}
+					else
+						{
+							FreeSystemAsyncTask (aspt_task_p);
+						}
 				}
 		}
+
 
 	if (!alloc_flag)
 		{
@@ -103,44 +110,47 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 {
 	bool alloc_flag = false;
 
-	bool async_flag;
-
-	if (GetJSONBoolean (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, &async_flag))
+	if (SetExecuteable (data_p))
 		{
-			char *name_s = NULL;
-			bool continue_flag = true;
-			const char *value_s = GetJSONString (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S);
+			bool async_flag = true;
 
-			if (value_s)
+			if (GetJSONBoolean (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, &async_flag))
 				{
-					aspt_async_logfile_s = CopyToNewString (value_s, 0, false);
+					char *name_s = NULL;
+					bool continue_flag = true;
+					const char *value_s = GetJSONString (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S);
 
-					if (!aspt_async_logfile_s)
+					if (value_s)
 						{
-							continue_flag = false;
+							aspt_async_logfile_s = CopyToNewString (value_s, 0, false);
+
+							if (!aspt_async_logfile_s)
+								{
+									continue_flag = false;
+								}
+						}
+					else
+						{
+							aspt_async_logfile_s = NULL;
+						}
+
+					if (continue_flag)
+						{
+							aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, NULL, PolymarkerServiceJobCompleted);
+
+							if (aspt_task_p)
+								{
+									alloc_flag = true;
+								}
+						}
+
+					if (!alloc_flag)
+						{
+							FreeCopiedString (aspt_async_logfile_s);
 						}
 				}
-			else
-				{
-					aspt_async_logfile_s = NULL;
-				}
 
-			if (continue_flag)
-				{
-					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, NULL, PolymarkerServiceJobCompleted);
-
-					if (aspt_task_p)
-						{
-							alloc_flag = true;
-						}
-				}
-
-			if (!alloc_flag)
-				{
-					FreeCopiedString (aspt_async_logfile_s);
-				}
 		}
-
 
 
 	if (!alloc_flag)
@@ -149,6 +159,25 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 		}
 }
 
+
+bool AsyncSystemPolymarkerTool :: SetExecuteable (const PolymarkerServiceData *data_p)
+{
+	bool success_flag = false;
+	const json_t *polymarker_config_p = data_p -> psd_base_data.sd_config_p;
+
+	if (polymarker_config_p)
+		{
+			const char *exe_s = GetJSONString (polymarker_config_p, "tool_executeable");
+
+			if (exe_s)
+				{
+					aspt_executable_s = exe_s;
+					success_flag = true;
+				}
+		}
+
+	return success_flag;
+}
 
 
 bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const param_set_p)
@@ -176,7 +205,7 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 						{
 							if (CreateMarkerListFile (markers_filename_s, param_set_p))
 								{
-									aspt_command_line_args_s = ConcatenateVarargsStrings (" -- contigs ", pt_seq_p -> ps_fasta_filename_s, " -- marker_list ", markers_filename_s, " --output ", dir_s, NULL);
+									aspt_command_line_args_s = ConcatenateVarargsStrings (aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", dir_s, NULL);
 
 									if (aspt_command_line_args_s)
 										{
@@ -209,8 +238,6 @@ bool AsyncSystemPolymarkerTool :: PostRun ()
 {
 	return true;
 }
-
-
 
 
 OperationStatus AsyncSystemPolymarkerTool :: Run ()
