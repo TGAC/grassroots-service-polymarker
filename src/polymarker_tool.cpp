@@ -25,6 +25,8 @@
 
 #include "polymarker_tool.hpp"
 #include "async_system_polymarker_tool.hpp"
+#include "streams.h"
+
 
 
 PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, PolymarkerServiceData *data_p)
@@ -34,7 +36,14 @@ PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const Polymar
 	switch (data_p -> psd_tool_type)
 		{
 			case PTT_SYSTEM:
-				tool_p = new AsyncSystemPolymarkerTool (job_p, seq_p, data_p);
+				try
+					{
+						tool_p = new AsyncSystemPolymarkerTool (job_p, seq_p, data_p);
+					}
+				catch (std :: bad_alloc &ex_r)
+					{
+						PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate AsyncSystemPolymarkerTool, \"%s\"", ex_r.what ());
+					}
 				break;
 
 			case PTT_WEB:
