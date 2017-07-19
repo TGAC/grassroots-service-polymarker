@@ -46,8 +46,8 @@
  */
 
 
-static const char * const PS_SEQUENCE_NAME_S = "Sequence";
-static const char * const PS_FASTA_FILENAME_S = "Fasta";
+static const char * const PS_SEQUENCE_NAME_S = "sequence";
+static const char * const PS_FASTA_FILENAME_S = "fasta";
 static const char * const PS_DATABASE_GROUP_NAME_S = "Available contigs";
 
 /*
