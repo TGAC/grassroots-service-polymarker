@@ -323,7 +323,7 @@ static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resourc
 			PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
 			Parameter *param_p = NULL;
 			SharedType def;
-			ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet ("Sequence parameters", NULL, true, & (data_p -> psd_base_data), param_set_p);
+			ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet (GetSequenceParametersGroupName (), NULL, true, & (data_p -> psd_base_data), param_set_p);
 
 
 			if (!group_p)
