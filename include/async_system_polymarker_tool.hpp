@@ -57,6 +57,9 @@ public:
 
 	virtual bool AddToJSON (json_t *root_p);
 
+	virtual PolymarkerToolType GetToolType () const;
+
+
 protected:
 	const char *aspt_executable_s;
 	char *aspt_command_line_args_s;
@@ -75,7 +78,7 @@ private:
 
 	static const char * const ASPT_ASYNC_S;
 	static const char * const ASPT_LOGFILE_S;
-	static const char * const ASPT_EXECUTEABLE_S;
+	static const char * const ASPT_EXECUTABLE_S;
 
 	char *aspt_async_logfile_s;
 	SystemAsyncTask *aspt_task_p;

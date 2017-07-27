@@ -74,11 +74,20 @@ public:
 
 	virtual bool AddToJSON (json_t *root_p);
 
+	virtual PolymarkerToolType GetToolType () const = 0;
+
+	bool AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p);
+
+
+
 protected:
 	PolymarkerServiceJob *pt_service_job_p;
 	const PolymarkerSequence *pt_seq_p;
 	const PolymarkerServiceData *pt_service_data_p;
 	int32 pt_process_id;
+	char *pt_job_dir_s;
+
+	static const char * const PT_JOB_DIR_S;
 };
 
 
@@ -87,8 +96,10 @@ extern "C"
 {
 #endif
 
+
 PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p);
 
+PolymarkerTool *CreatePolymarkerToolFromJSON (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p, const json_t *service_job_json_p);
 
 void FreePolymarkerTool (PolymarkerTool *tool_p);
 

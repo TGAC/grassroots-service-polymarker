@@ -420,47 +420,21 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 	 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/
 	 *
 	 */
+	OperationStatus status = RunPolymarkerTool (job_p -> psj_tool_p);
 
-	ConvertUUIDToString (job_p -> psj_base_job.sj_id, uuid_s);
-
-	dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
-
-	if (dir_s)
+	switch (status)
 		{
-			if (EnsureDirectoryExists (dir_s))
-				{
-					char *markers_filename_s = MakeFilename (dir_s, "markers_list");
+			case OS_STARTED:
+			case OS_PENDING:
+			case OS_FINISHED:
+			case OS_PARTIALLY_SUCCEEDED:
+			case OS_SUCCEEDED:
+				success_flag = true;
+				break;
 
-					if (markers_filename_s)
-						{
-							if (CreateMarkerListFile (markers_filename_s, param_set_p))
-								{
-									OperationStatus status = RunPolymarkerTool (job_p -> psj_tool_p);
-
-									switch (status)
-										{
-											case OS_STARTED:
-											case OS_PENDING:
-											case OS_FINISHED:
-											case OS_PARTIALLY_SUCCEEDED:
-											case OS_SUCCEEDED:
-												success_flag = true;
-												break;
-
-											default:
-												break;
-										}
-
-
-								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
-
-							FreeCopiedString (markers_filename_s);
-						}		/* if (markers_filename_s) */
-
-				}		/* if (EnsureDirectoryExists (dir_s)) */
-
-			FreeCopiedString (dir_s);
-		}		/* if (dir_s) */
+			default:
+				break;
+		}
 
 	return success_flag;
 }

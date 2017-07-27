@@ -66,7 +66,7 @@ bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_
 
 			if (group_p)
 				{
-					if (! (WriteParameterValues (group_p, marker_f)))
+					if (WriteParameterValues (group_p, marker_f))
 						{
 							RegExp *reg_ex_p = AllocateRegExp (32);
 
@@ -80,18 +80,27 @@ bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_
 											if (SetPattern (reg_ex_p, reg_exp_s, 0))
 												{
 													ParameterGroupNode *group_node_p = (ParameterGroupNode *) (param_set_p -> ps_grouped_params_p -> ll_head_p);
-													bool loop_flag = true;
 
-													while (group_node_p && loop_flag)
+													success_flag = true;
+
+													while (group_node_p && success_flag)
 														{
 															group_p = group_node_p -> pgn_param_group_p;
 
 															if (MatchPattern (reg_ex_p, group_p -> pg_name_s))
 																{
-																	if (! (WriteParameterValues (group_p, marker_f)))
+																	if (fprintf (marker_f, "\n") >= 0)
 																		{
-																			loop_flag = false;
-																			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set write parameter values to marker list file for \"%s\"", group_p -> pg_name_s);
+																			if (! (WriteParameterValues (group_p, marker_f)))
+																				{
+																					success_flag = false;
+																					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set write parameter values to marker list file for \"%s\"", group_p -> pg_name_s);
+																				}
+																		}
+																	else
+																		{
+																			success_flag = false;
+																			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add newline in marker list file before \"%s\"", group_p -> pg_name_s);
 																		}
 
 																}		/* if (MatchPattern (reg_ex_p, group_p -> pg_name_s)) */
@@ -119,7 +128,7 @@ bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_
 									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate regular expression for matching repeatable parameter groups of \"%s\"", sequence_group_name_s);
 								}
 
-						}		/* if (! (WriteParameterValues (group_p, marker_f))) */
+						}		/* if (WriteParameterValues (group_p, marker_f)) */
 					else
 						{
 							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set write parameter values to marker list file for \"%s\"", group_p -> pg_name_s);
@@ -143,6 +152,7 @@ bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_
 
 	return success_flag;
 }
+
 
 
 /*

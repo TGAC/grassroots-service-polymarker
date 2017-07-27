@@ -46,7 +46,7 @@ const char * const AsyncSystemPolymarkerTool :: ASPT_ASYNC_S = "async";
 const char * const AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S = "logfile";
 
 
-const char * const AsyncSystemPolymarkerTool :: ASPT_EXECUTEABLE_S = "executeable";
+const char * const AsyncSystemPolymarkerTool :: ASPT_EXECUTABLE_S = "executable";
 
 
 static bool UpdateAsyncPolymarkerServiceJob (struct ServiceJob *job_p);
@@ -102,52 +102,46 @@ AsyncSystemPolymarkerTool :: ~AsyncSystemPolymarkerTool ()
 
 
 AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p,  const PolymarkerServiceData *data_p, const json_t *root_p)
-: PolymarkerTool (job_p, seq_p, data_p, root_p),
-	aspt_executable_s (0),
-	aspt_command_line_args_s (0),
-	aspt_async_logfile_s (0),
-	aspt_task_p (0)
+	: PolymarkerTool (job_p, seq_p, data_p, root_p),
+		aspt_executable_s (0),
+		aspt_command_line_args_s (0),
+		aspt_task_p (0)
 {
 	bool alloc_flag = false;
 
 	if (SetExecuteable (data_p))
 		{
-			bool async_flag = true;
+			char *name_s = NULL;
+			bool continue_flag = true;
+			const char *value_s = GetJSONString (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S);
 
-			if (GetJSONBoolean (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, &async_flag))
+			if (value_s)
 				{
-					char *name_s = NULL;
-					bool continue_flag = true;
-					const char *value_s = GetJSONString (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S);
+					aspt_async_logfile_s = CopyToNewString (value_s, 0, false);
 
-					if (value_s)
+					if (!aspt_async_logfile_s)
 						{
-							aspt_async_logfile_s = CopyToNewString (value_s, 0, false);
-
-							if (!aspt_async_logfile_s)
-								{
-									continue_flag = false;
-								}
+							continue_flag = false;
 						}
-					else
+				}
+			else
+				{
+					aspt_async_logfile_s = NULL;
+				}
+
+			if (continue_flag)
+				{
+					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, NULL, PolymarkerServiceJobCompleted);
+
+					if (aspt_task_p)
 						{
-							aspt_async_logfile_s = NULL;
+							alloc_flag = true;
 						}
+				}
 
-					if (continue_flag)
-						{
-							aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, NULL, PolymarkerServiceJobCompleted);
-
-							if (aspt_task_p)
-								{
-									alloc_flag = true;
-								}
-						}
-
-					if (!alloc_flag)
-						{
-							FreeCopiedString (aspt_async_logfile_s);
-						}
+			if (!alloc_flag)
+				{
+					FreeCopiedString (aspt_async_logfile_s);
 				}
 
 		}
@@ -167,7 +161,7 @@ bool AsyncSystemPolymarkerTool :: SetExecuteable (const PolymarkerServiceData *d
 
 	if (polymarker_config_p)
 		{
-			const char *exe_s = GetJSONString (polymarker_config_p, "tool_executeable");
+			const char *exe_s = GetJSONString (polymarker_config_p, AsyncSystemPolymarkerTool :: ASPT_EXECUTABLE_S);
 
 			if (exe_s)
 				{
@@ -180,11 +174,16 @@ bool AsyncSystemPolymarkerTool :: SetExecuteable (const PolymarkerServiceData *d
 }
 
 
+PolymarkerToolType AsyncSystemPolymarkerTool :: GetToolType () const
+{
+	return PTT_SYSTEM;
+}
+
+
 bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const param_set_p)
 {
 	bool success_flag = false;
 	char uuid_s [UUID_STRING_BUFFER_SIZE];
-	char *dir_s = NULL;
 
 	/*
 	 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/
@@ -193,19 +192,19 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 
 	ConvertUUIDToString (pt_service_job_p -> psj_base_job.sj_id, uuid_s);
 
-	dir_s = MakeFilename (pt_service_data_p -> psd_working_dir_s, uuid_s);
+	pt_job_dir_s = MakeFilename (pt_service_data_p -> psd_working_dir_s, uuid_s);
 
-	if (dir_s)
+	if (pt_job_dir_s)
 		{
-			if (EnsureDirectoryExists (dir_s))
+			if (EnsureDirectoryExists (pt_job_dir_s))
 				{
-					char *markers_filename_s = MakeFilename (dir_s, "markers_list");
+					char *markers_filename_s = MakeFilename (pt_job_dir_s, "markers_list");
 
 					if (markers_filename_s)
 						{
 							if (CreateMarkerListFile (markers_filename_s, param_set_p))
 								{
-									aspt_command_line_args_s = ConcatenateVarargsStrings (aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", dir_s, NULL);
+									aspt_command_line_args_s = ConcatenateVarargsStrings (aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", pt_job_dir_s, NULL);
 
 									if (aspt_command_line_args_s)
 										{
@@ -217,10 +216,9 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 							FreeCopiedString (markers_filename_s);
 						}		/* if (markers_filename_s) */
 
-				}		/* if (EnsureDirectoryExists (dir_s)) */
+				}		/* if (EnsureDirectoryExists (pt_job_dir_s)) */
 
-			FreeCopiedString (dir_s);
-		}		/* if (dir_s) */
+		}		/* if (pt_job_dir_s) */
 
 	return success_flag;
 }
@@ -329,18 +327,21 @@ bool AsyncSystemPolymarkerTool :: AddToJSON (json_t *root_p)
 
 	if (success_flag)
 		{
-			if (json_object_set_new (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, json_true ()) != 0)
+			if (json_object_set_new (root_p, AsyncSystemPolymarkerTool :: ASPT_ASYNC_S, json_true ()) == 0)
+				{
+					if (aspt_async_logfile_s)
+						{
+							if (json_object_set_new (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S, json_string (aspt_async_logfile_s)) != 0)
+								{
+									success_flag = false;
+								}
+						}
+				}
+			else
 				{
 					success_flag = false;
 				}
 
-			if (aspt_async_logfile_s)
-				{
-					if (json_object_set_new (root_p, AsyncSystemPolymarkerTool :: ASPT_LOGFILE_S, json_string (aspt_async_logfile_s)) != 0)
-						{
-							success_flag = false;
-						}
-				}
 
 		}		/* if (success_flag) */
 	else
@@ -405,12 +406,19 @@ OperationStatus AsyncSystemPolymarkerTool :: GetStatus (bool update_flag)
 char *AsyncSystemPolymarkerTool :: GetResults (PolymarkerFormatter *formatter_p)
 {
 	char *results_s = 0;
-	JobsManager *jobs_manager_p = GetJobsManager ();
+	char *primers_filename_s = MakeFilename (pt_job_dir_s, "primers.csv");
 
-	/*
-	 * Remove the ServiceJob from the JobsManager
-	 */
-	//RemoveServiceJobFromJobsManager (jobs_manager_p, bt_job_p -> psj_base_job.sj_id, false);
+	if (primers_filename_s)
+		{
+			char *primers_results_s = GetFileContentsAsStringByFilename (primers_filename_s);
+
+			if (primers_results_s)
+				{
+
+				}
+
+			FreeCopiedString (primers_filename_s);
+		}		/* if (primers_filename_s) */
 
 
 	return results_s;

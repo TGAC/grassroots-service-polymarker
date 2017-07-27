@@ -26,7 +26,9 @@
 #include "polymarker_tool.hpp"
 #include "async_system_polymarker_tool.hpp"
 #include "streams.h"
+#include "string_utils.h"
 
+const char * const PolymarkerTool :: PT_JOB_DIR_S = "job_dir";
 
 
 PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, PolymarkerServiceData *data_p)
@@ -39,6 +41,33 @@ PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const Polymar
 				try
 					{
 						tool_p = new AsyncSystemPolymarkerTool (job_p, seq_p, data_p);
+					}
+				catch (std :: bad_alloc &ex_r)
+					{
+						PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate AsyncSystemPolymarkerTool, \"%s\"", ex_r.what ());
+					}
+				break;
+
+			case PTT_WEB:
+			default:
+				break;
+		}
+
+	return tool_p;
+}
+
+
+
+PolymarkerTool *CreatePolymarkerToolFromJSON (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, PolymarkerServiceData *data_p, const json_t *service_job_json_p)
+{
+	PolymarkerTool *tool_p = 0;
+
+	switch (data_p -> psd_tool_type)
+		{
+			case PTT_SYSTEM:
+				try
+					{
+						tool_p = new AsyncSystemPolymarkerTool (job_p, seq_p, data_p, service_job_json_p);
 					}
 				catch (std :: bad_alloc &ex_r)
 					{
@@ -88,22 +117,50 @@ PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerS
 {
 	job_p -> psj_tool_p = this;
 	pt_process_id = 0;
+	pt_job_dir_s = 0;
 }
 
 
 
 PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p, const json_t *root_p)
 {
+	const char *value_s = GetJSONString (root_p, PT_JOB_DIR_S);
+
 	pt_service_data_p = data_p;
 	pt_seq_p = seq_p;
 	pt_service_job_p = job_p;
+
+	pt_job_dir_s = 0;
+
+
+	if (value_s)
+		{
+			pt_job_dir_s = CopyToNewString (value_s, 0, false);
+		}
+
+	if (!pt_job_dir_s)
+		{
+			char uuid_s [UUID_STRING_BUFFER_SIZE];
+
+			ConvertUUIDToString (job_p -> psj_base_job.sj_id, uuid_s);
+
+			pt_job_dir_s = MakeFilename (data_p -> psd_working_dir_s, uuid_s);
+
+			if (!pt_job_dir_s)
+				{
+					throw std :: bad_alloc ();
+				}
+		}
 }
 
 
 
 PolymarkerTool :: ~PolymarkerTool ()
 {
-
+	if (pt_job_dir_s)
+		{
+			FreeCopiedString (pt_job_dir_s);
+		}
 }
 
 
@@ -116,5 +173,51 @@ const char *PolymarkerTool :: GetName ()
 
 bool PolymarkerTool :: AddToJSON (json_t *root_p)
 {
-	return true;
+	bool success_flag = true;
+
+	if (pt_job_dir_s)
+		{
+			success_flag = (json_object_set_new (root_p, PolymarkerTool :: PT_JOB_DIR_S, json_string (pt_job_dir_s)) == 0);
+		}
+
+	return success_flag;
 }
+
+
+bool PolymarkerTool :: AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p)
+{
+	bool success_flag = false;
+	char *full_filename_s = MakeFilename (pt_job_dir_s, filename_s);
+
+	if (full_filename_s)
+		{
+			char *results_s = GetFileContentsAsStringByFilename (full_filename_s);
+
+			if (results_s)
+				{
+					if (json_object_set_new (result_p, key_s, json_string (results_s)) == 0)
+						{
+							success_flag = true;
+						}
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add \"%s\": \"%s\"", key_s, results_s);
+						}
+
+					FreeCopiedString (results_s);
+				}		/* if (results_s) */
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get data from %s", full_filename_s);
+				}
+
+			FreeCopiedString (full_filename_s);
+		}		/* if (full_filename_s) */
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get full filename from \"%s\" and \"%s\"", pt_job_dir_s, filename_s);
+		}
+
+	return success_flag;
+}
+

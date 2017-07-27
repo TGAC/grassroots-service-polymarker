@@ -21,6 +21,9 @@ static const char * const PSJ_JOB_S = "job";
 static const char * const PSJ_PROCESS_ID_S = "process_id";
 
 
+static bool CalculatePolymarkerServiceJobResults (ServiceJob *job_p);
+
+
 
 PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const PolymarkerSequence *db_p, PolymarkerServiceData *data_p)
 {
@@ -65,6 +68,7 @@ void FreePolymarkerServiceJob (ServiceJob *job_p)
 
 void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), ServiceJob *job_p)
 {
+	job_p -> sj_calculate_result_fn = CalculatePolymarkerServiceJobResults;
 	job_p -> sj_update_fn = UpdatePolymarkerServiceJob;
 	job_p -> sj_free_fn = FreePolymarkerServiceJob;
 }
@@ -113,15 +117,16 @@ ServiceJob *GetPolymarkerServiceJobFromJSON (struct Service *service_p, const js
 
 									if (tool_type != PTT_NUM_TYPES)
 										{
-											PolymarkerTool *tool_p = NULL;
 											PolymarkerSequence *seq_p = NULL;
 
 											data_p -> psd_tool_type = tool_type;
 
-											tool_p = CreatePolymarkerTool (polymarker_job_p, seq_p, data_p);
+											polymarker_job_p -> psj_tool_p  = CreatePolymarkerToolFromJSON (polymarker_job_p, seq_p, data_p, service_job_json_p);
 
-											if (tool_p)
+											if (polymarker_job_p -> psj_tool_p )
 												{
+													CustomisePolymarkerServiceJob (service_p, & (polymarker_job_p -> psj_base_job));
+
 													return (& (polymarker_job_p -> psj_base_job));
 												}
 
@@ -179,23 +184,49 @@ json_t *ConvertPolymarkerServiceJobToJSON (Service * UNUSED_PARAM (service_p), S
 
 					if (base_job_json_p)
 						{
-							if (json_object_set_new (polymarker_job_json_p, PSJ_JOB_S, base_job_json_p) == 0)
-								{
-									PolymarkerServiceJob *poly_job_p = (PolymarkerServiceJob *) service_job_p;
+							PolymarkerServiceJob *polymarker_job_p = (PolymarkerServiceJob *) service_job_p;
+							const char *tool_type_s = NULL;
 
-									if (json_object_set_new (polymarker_job_json_p, PSJ_PROCESS_ID_S, json_integer (poly_job_p -> psj_process_id)) == 0)
+							switch (polymarker_job_p -> psj_tool_p -> GetToolType ())
+								{
+									case PTT_SYSTEM:
+										tool_type_s = PS_TOOL_SYSTEM_S;
+										break;
+
+									case PTT_WEB:
+										tool_type_s = PS_TOOL_WEB_S;
+										break;
+
+									default:
+										break;
+								}
+
+							if (tool_type_s)
+								{
+									if (json_object_set_new (base_job_json_p, PS_TOOL_S, json_string (tool_type_s)) == 0)
 										{
-											return polymarker_job_json_p;
-										}
-									else
-										{
-											PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymarker_job_json_p, "Failed to add %s =" UINT32_FMT " for job %s", PSJ_PROCESS_ID_S, poly_job_p -> psj_process_id, uuid_s);
+											if (json_object_set_new (polymarker_job_json_p, PSJ_JOB_S, base_job_json_p) == 0)
+												{
+													PolymarkerServiceJob *poly_job_p = (PolymarkerServiceJob *) service_job_p;
+
+													if (json_object_set_new (polymarker_job_json_p, PSJ_PROCESS_ID_S, json_integer (poly_job_p -> psj_process_id)) == 0)
+														{
+
+															return polymarker_job_json_p;
+														}
+													else
+														{
+															PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymarker_job_json_p, "Failed to add %s =" UINT32_FMT " for job %s", PSJ_PROCESS_ID_S, poly_job_p -> psj_process_id, uuid_s);
+														}
+
+												}		/* if (json_object_set_new (blast_job_json_p, BSJ_JOB_S, base_job_json_p) == 0) */
+											else
+												{
+													json_decref (base_job_json_p);
+												}
+
 										}
 
-								}		/* if (json_object_set_new (blast_job_json_p, BSJ_JOB_S, base_job_json_p) == 0) */
-							else
-								{
-									json_decref (base_job_json_p);
 								}
 
 						}		/* if (base_job_json_p) */
@@ -243,8 +274,65 @@ void PolymarkerServiceJobCompleted (ServiceJob *job_p)
 bool DeterminePolymarkerResult (PolymarkerServiceJob *polymarker_job_p)
 {
 	bool success_flag = false;
+	Service *service_p = polymarker_job_p -> psj_base_job.sj_service_p;
+	PolymarkerTool *tool_p = polymarker_job_p -> psj_tool_p;
+	char uuid_s [UUID_STRING_BUFFER_SIZE];
+	OperationStatus status = GetServiceJobStatus (& (polymarker_job_p -> psj_base_job));
+
+	ConvertUUIDToString (polymarker_job_p -> psj_base_job.sj_id, uuid_s);
+
+	if (status == OS_SUCCEEDED)
+		{
+			PolymarkerServiceData *polymarker_data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
+			json_t *result_json_p = json_object ();
+
+			if (result_json_p)
+				{
+
+					//bool PolymarkerTool :: AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p)
+
+					if (tool_p -> AddSectionToResult (result_json_p, "primers.csv", "primers", 0))
+						{
+							if (tool_p -> AddSectionToResult (result_json_p, "exons_genes_and_contigs.fa", "exons_genes_and_contigs", 0))
+								{
+									json_t *polymarker_result_json_p = GetResourceAsJSONByParts (PROTOCOL_INLINE_S, NULL, uuid_s, result_json_p);
+
+									if (polymarker_result_json_p)
+										{
+											if (AddResultToServiceJob (& (polymarker_job_p -> psj_base_job), polymarker_result_json_p))
+												{
+													success_flag = true;
+												}
+											else
+												{
+													json_decref (polymarker_result_json_p);
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to append polymarker result for \"%s\"", uuid_s);
+												}
+
+										}		/* if (polymarker_result_json_p) */
+
+								}
+
+						}
+
+					json_decref (result_json_p);
+				}		/* if (result_json_p) */
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get blast result for \"%s\"", uuid_s);
+				}
+
+		}		/* if (status == OS_SUCCEEDED) */
+	else
+		{
+			success_flag = true;
+		}
 
 	return success_flag;
 }
 
 
+static bool CalculatePolymarkerServiceJobResults (ServiceJob *job_p)
+{
+	return DeterminePolymarkerResult ((PolymarkerServiceJob *) job_p);
+}
