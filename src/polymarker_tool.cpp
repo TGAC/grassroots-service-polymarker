@@ -30,6 +30,8 @@
 
 const char * const PolymarkerTool :: PT_JOB_DIR_S = "job_dir";
 
+const char * const PolymarkerTool :: PT_METADATA_FILENAME_S = "metadata";
+
 
 PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, PolymarkerServiceData *data_p)
 {
@@ -216,6 +218,125 @@ bool PolymarkerTool :: AddSectionToResult (json_t *result_p, const char * const 
 	else
 		{
 			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get full filename from \"%s\" and \"%s\"", pt_job_dir_s, filename_s);
+		}
+
+	return success_flag;
+}
+
+
+void PolymarkerTool :: SetPolymarkerSequence (const PolymarkerSequence *seq_p)
+{
+	pt_seq_p = seq_p;
+}
+
+
+
+bool PolymarkerTool :: SaveJobMetadata () const
+{
+	bool success_flag = false;
+
+	if (pt_job_dir_s)
+		{
+			if (EnsureDirectoryExists (pt_job_dir_s))
+				{
+					char *metadata_s = MakeFilename (pt_job_dir_s, PT_METADATA_FILENAME_S);
+
+					if (metadata_s)
+						{
+							json_t *metadata_p = json_object ();
+
+							if (metadata_p)
+								{
+									const ServiceJob *base_job_p = & (pt_service_job_p -> psj_base_job);
+
+									if (json_object_set_new (metadata_p, JOB_NAME_S, json_string (base_job_p -> sj_name_s)) == 0)
+										{
+											if ((! (base_job_p -> sj_description_s)) || (json_object_set_new (metadata_p, JOB_DESCRIPTION_S, json_string (base_job_p -> sj_name_s)) == 0))
+												{
+													if (json_dump_file (metadata_p, metadata_s, JSON_INDENT (2)) == 0)
+														{
+															success_flag = true;
+														}
+												}
+										}
+
+									json_decref (metadata_p);
+								}
+
+							FreeCopiedString (metadata_s);
+						}
+				}
+		}
+
+	return success_flag;
+}
+
+
+bool PolymarkerTool :: SetJobMetadata ()
+{
+	bool success_flag = false;
+
+	char *metadata_s = MakeFilename (pt_job_dir_s, PT_METADATA_FILENAME_S);
+
+	if (metadata_s)
+		{
+			json_error_t err;
+			json_t *metadata_p = json_load_file (metadata_s, 0, &err);
+
+			if (metadata_p)
+				{
+					const char *value_s = GetJSONString (metadata_p, JOB_NAME_S);
+
+					if (value_s)
+						{
+							if (SetServiceJobName (& (pt_service_job_p -> psj_base_job), value_s))
+								{
+									success_flag = true;
+									value_s = GetJSONString (metadata_p, JOB_DESCRIPTION_S);
+
+									if (value_s)
+										{
+											if (!SetServiceJobDescription (& (pt_service_job_p -> psj_base_job), value_s))
+												{
+
+												}
+										}
+								}
+						}
+
+					json_decref (metadata_p);
+				}
+
+			FreeCopiedString (metadata_s);
+		}
+
+	return success_flag;
+}
+
+
+
+bool PolymarkerTool :: SetJobUUID (const uuid_t id)
+{
+	bool success_flag = false;
+	char uuid_s [UUID_STRING_BUFFER_SIZE];
+	char *new_job_dir_s;
+
+	ConvertUUIDToString (id, uuid_s);
+
+	new_job_dir_s = MakeFilename (pt_service_data_p -> psd_working_dir_s, uuid_s);
+
+	if (new_job_dir_s)
+		{
+			if (pt_job_dir_s)
+				{
+					FreeCopiedString (pt_job_dir_s);
+				}
+
+			pt_job_dir_s = new_job_dir_s;
+
+			SetServiceJobUUID (& (pt_service_job_p -> psj_base_job), id);
+
+			success_flag = true;
 		}
 
 	return success_flag;

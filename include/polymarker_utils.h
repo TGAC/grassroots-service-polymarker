@@ -29,6 +29,7 @@
 
 
 #include "polymarker_service.h"
+#include "linked_list.h"
 
 
 #ifdef __cplusplus
@@ -41,6 +42,9 @@ POLYMARKER_SERVICE_LOCAL bool CreateMarkerListFile (const char *marker_file_s, c
 
 
 POLYMARKER_SERVICE_LOCAL const char *GetSequenceParametersGroupName (void);
+
+
+POLYMARKER_SERVICE_LOCAL ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *polymarker_data_p);
 
 
 #ifdef __cplusplus

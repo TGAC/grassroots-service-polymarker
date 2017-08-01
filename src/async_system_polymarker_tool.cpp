@@ -65,7 +65,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 	SetServiceJobUpdateFunction (& (job_p -> psj_base_job), UpdateAsyncPolymarkerServiceJob);
 
-	if (SetExecuteable (data_p))
+	if (SetExecutable (data_p))
 		{
 			aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, program_name_s, PolymarkerServiceJobCompleted);
 
@@ -78,10 +78,18 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 					else
 						{
 							FreeSystemAsyncTask (aspt_task_p);
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add AsyncTask for AsyncSystemPolymarkerTool to AsyncTasksManager");
 						}
 				}
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate SystemAsyncTask for AsyncSystemPolymarkerTool");
+				}
 		}
-
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set executable for AsyncSystemPolymarkerTool");
+		}
 
 	if (!alloc_flag)
 		{
@@ -109,7 +117,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 {
 	bool alloc_flag = false;
 
-	if (SetExecuteable (data_p))
+	if (SetExecutable (data_p))
 		{
 			char *name_s = NULL;
 			bool continue_flag = true;
@@ -122,8 +130,10 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 					if (!aspt_async_logfile_s)
 						{
 							continue_flag = false;
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set AsyncSystemPolymarkerTool to \"%s\"", value_s);
 						}
-				}
+
+				}		/* if (value_s) */
 			else
 				{
 					aspt_async_logfile_s = NULL;
@@ -137,6 +147,11 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 						{
 							alloc_flag = true;
 						}
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate SystemAsyncTask for AsyncSystemPolymarkerTool");
+						}
+
 				}
 
 			if (!alloc_flag)
@@ -144,6 +159,10 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 					FreeCopiedString (aspt_async_logfile_s);
 				}
 
+		}		/* if (SetExecutable (data_p)) */
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to set executable for AsyncSystemPolymarkerTool");
 		}
 
 
@@ -154,7 +173,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 }
 
 
-bool AsyncSystemPolymarkerTool :: SetExecuteable (const PolymarkerServiceData *data_p)
+bool AsyncSystemPolymarkerTool :: SetExecutable (const PolymarkerServiceData *data_p)
 {
 	bool success_flag = false;
 	const json_t *polymarker_config_p = data_p -> psd_base_data.sd_config_p;

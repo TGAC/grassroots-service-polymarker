@@ -70,7 +70,7 @@ protected:
 	bool GetStringParameter (const ParameterSet * const params_p, const char *param_name_s, char **param_value_ss);
 	void FreeCommandLineArgs ();
 
-	bool SetExecuteable (const PolymarkerServiceData *data_p);
+	bool SetExecutable (const PolymarkerServiceData *data_p);
 
 
 private:

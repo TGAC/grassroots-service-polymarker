@@ -31,6 +31,8 @@
 #include "streams.h"
 #include "regular_expressions.h"
 #include "string_utils.h"
+#include "polymarker_service_job.h"
+#include "polymarker_tool.hpp"
 
 
 /*
@@ -220,3 +222,101 @@ static bool WriteParameterValues (ParameterGroup *group_p, FILE *marker_f)
 
 	return success_flag;
 }
+
+
+ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *polymarker_data_p)
+{
+	Service *service_p = polymarker_data_p -> psd_base_data.sd_service_p;
+	ServiceJobSet *jobs_p = AllocateServiceJobSet (service_p);
+
+	if (jobs_p)
+		{
+			StringListNode *node_p = (StringListNode *) (ids_p -> ll_head_p);
+			uint32 num_successful_jobs = 0;
+
+			while (node_p)
+				{
+					uuid_t job_id;
+					const char * const job_id_s = node_p -> sln_string_s;
+
+					if (uuid_parse (job_id_s, job_id) == 0)
+						{
+							PolymarkerServiceJob *polymarker_job_p = AllocatePolymarkerServiceJob (jobs_p -> sjs_service_p, NULL, polymarker_data_p);
+
+							if (polymarker_job_p)
+								{
+									ServiceJob *job_p = (ServiceJob *) polymarker_job_p;
+
+									if (polymarker_job_p -> psj_tool_p -> SetJobUUID (job_id))
+										{
+											if (AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p))
+												{
+													if (polymarker_job_p -> psj_tool_p -> SetJobMetadata ())
+														{
+															if (AddPolymarkerResult (polymarker_job_p, job_id_s))
+																{
+																	SetServiceJobStatus (job_p, OS_SUCCEEDED);
+																	++ num_successful_jobs;
+																}		/* if (DeterminePolymarkerResult (polymarker_job_p)) */
+															else
+																{
+																	char *error_s = ConcatenateVarargsStrings ("Failed to determine ", GetServiceName (service_p), " result for id \"", job_id_s, "\"", NULL);
+
+																	SetServiceJobStatus (job_p, OS_FAILED);
+
+																	if (error_s)
+																		{
+																			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, error_s);
+
+																			if (!AddErrorToServiceJob (job_p, job_id_s, error_s))
+																				{
+																					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add error text for \"%s\"", job_id_s);
+																				}
+
+																			FreeCopiedString (error_s);
+																		}		/* if (error_s) */
+																	else
+																		{
+																			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get result for \"%s\"", job_id_s);
+																		}
+																}
+
+														}		/* if (polymarker_job_p -> psj_tool_p -> SetJobMetadata ()) */
+
+												}		/* if (AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p)) */
+											else
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate add ServiceJob with id \"%s\" to ServiceJobSet", job_id_s);
+													FreeServiceJob (job_p);
+												}
+
+										}
+
+
+								}		/* if (polymarker_job_p) */
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate ServiceJob");
+								}
+
+						}		/* if (uuid_parse (job_id_s, job_id) == 0) */
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to parse job id \"%s\"", job_id_s);
+						}
+
+					node_p = (StringListNode *) (node_p -> sln_node.ln_next_p);
+				}		/* while (node_p) */
+
+		}		/* if (jobs_p) */
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate ServiceJobSet");
+		}
+
+	return jobs_p;
+}
+
+
+
+

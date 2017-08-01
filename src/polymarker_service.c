@@ -94,6 +94,7 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 
 static bool PreRunJobs (PolymarkerServiceData *data_p);
 
+static void SetPolymarkerSequenceConfig (PolymarkerSequence *seq_p, const json_t *config_p);
 
 
 /*
@@ -224,8 +225,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 									json_array_foreach (index_files_p, i, index_file_p)
 										{
-											((data_p -> psd_index_data_p) + i) -> ps_name_s = GetJSONString (index_file_p, PS_SEQUENCE_NAME_S);
-											((data_p -> psd_index_data_p) + i) -> ps_fasta_filename_s = GetJSONString (index_file_p, PS_FASTA_FILENAME_S);
+											SetPolymarkerSequenceConfig ((data_p -> psd_index_data_p) + i, index_file_p);
 										}
 
 									data_p -> psd_index_data_size = size;
@@ -238,12 +238,11 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 						{
 							if (json_is_object (index_files_p))
 								{
-									data_p -> psd_index_data_p = (PolymarkerSequence *) AllocMemoryArray (sizeof (PolymarkerSequence), 1);
+									data_p -> psd_index_data_p = (PolymarkerSequence *) AllocMemory (sizeof (PolymarkerSequence));
 
 									if (data_p -> psd_index_data_p)
 										{
-											data_p -> psd_index_data_p -> ps_name_s = GetJSONString (index_files_p, PS_SEQUENCE_NAME_S);
-											data_p -> psd_index_data_p -> ps_fasta_filename_s = GetJSONString (index_files_p, PS_FASTA_FILENAME_S);
+											SetPolymarkerSequenceConfig (data_p -> psd_index_data_p, index_files_p);
 
 											data_p -> psd_index_data_size = 1;
 
@@ -259,6 +258,14 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 	return success_flag;
 }
 
+
+static void SetPolymarkerSequenceConfig (PolymarkerSequence *seq_p, const json_t *config_p)
+{
+	seq_p -> ps_name_s = GetJSONString (config_p, PS_SEQUENCE_NAME_S);
+	seq_p -> ps_fasta_filename_s = GetJSONString (config_p, PS_FASTA_FILENAME_S);
+
+	GetJSONBoolean (config_p, "active", & (seq_p -> ps_active_flag));
+}
 
 
 static PolymarkerServiceData *AllocatePolymarkerServiceData (Service * UNUSED_PARAM (service_p))
@@ -333,17 +340,21 @@ static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resourc
 
 			def.st_string_value_s = NULL;
 
-			if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_GENE_ID.npt_type, PS_GENE_ID.npt_name_s, "Gene ID", "An unique identifier for the assay", def, PL_ALL)) != NULL)
-				{
-					if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_TARGET_CHROMOSOME.npt_type, PS_TARGET_CHROMOSOME.npt_name_s, "Target Chromosome", "The chromosome to use", def, PL_ALL)) != NULL)
-						{
-							if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_SEQUENCE.npt_type, PS_SEQUENCE.npt_name_s, "Sequence surrounding the polymorphisms", "The SNP must be marked in the format [A/T] for a varietal SNP with alternative bases, A or T",  def, PL_ALL)) != NULL)
-								{
-									uint16 num_dbs = AddDatabaseParams (data_p, param_set_p);
 
-									if (num_dbs > 0)
+			if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, NULL, PS_JOB_IDS.npt_type, PS_JOB_IDS.npt_name_s, "Previous job ids", "The ids for previous sets of results", def, PL_ALL)) != NULL)
+				{
+					if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_GENE_ID.npt_type, PS_GENE_ID.npt_name_s, "Gene ID", "An unique identifier for the assay", def, PL_ALL)) != NULL)
+						{
+							if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_TARGET_CHROMOSOME.npt_type, PS_TARGET_CHROMOSOME.npt_name_s, "Target Chromosome", "The chromosome to use", def, PL_ALL)) != NULL)
+								{
+									if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_SEQUENCE.npt_type, PS_SEQUENCE.npt_name_s, "Sequence surrounding the polymorphisms", "The SNP must be marked in the format [A/T] for a varietal SNP with alternative bases, A or T",  def, PL_ALL)) != NULL)
 										{
-											return param_set_p;
+											uint16 num_dbs = AddDatabaseParams (data_p, param_set_p);
+
+											if (num_dbs > 0)
+												{
+													return param_set_p;
+												}
 										}
 								}
 						}
@@ -365,46 +376,73 @@ static void ReleasePolymarkerServiceParameters (Service * UNUSED_PARAM (service_
 static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails * UNUSED_PARAM (user_p), ProvidersStateTable * UNUSED_PARAM (providers_p))
 {
 	PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
-	service_p -> se_jobs_p = AllocateServiceJobSet (service_p);
+	SharedType value;
 
-	if (service_p -> se_jobs_p)
+	InitSharedType (&value);
+
+	if ((GetParameterValueFromParameterSet (param_set_p, PS_JOB_IDS.npt_name_s, &value, true)) && (!IsStringEmpty (value.st_string_value_s)))
 		{
-			PreparePolymarkerServiceJobs (param_set_p, service_p -> se_jobs_p, data_p);
+			LinkedList *uuids_p = GetUUIDSList (value.st_string_value_s);
 
-			if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0)
+			if (uuids_p)
 				{
-					if (PreRunJobs (data_p))
+					service_p -> se_jobs_p = GetPreviousJobResults (uuids_p, data_p);
+
+					if (! (service_p -> se_jobs_p))
 						{
-							ServiceJobSetIterator iterator;
-							PolymarkerServiceJob *job_p = NULL;
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get previous jobs for \"%s\"", value.st_string_value_s);
+						}
+				}
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to parse \"%s\" for ids", value.st_string_value_s);
+				}
 
-							InitServiceJobSetIterator (&iterator, service_p -> se_jobs_p);
+		}		/* if (previous_job_ids_s) */
+	else
+		{
+			service_p -> se_jobs_p = AllocateServiceJobSet (service_p);
 
-							job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
+			if (service_p -> se_jobs_p)
+				{
+					PreparePolymarkerServiceJobs (param_set_p, service_p -> se_jobs_p, data_p);
 
-							while (job_p)
+					if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0)
+						{
+							if (PreRunJobs (data_p))
 								{
-									if (job_p -> psj_tool_p -> ParseParameters (param_set_p))
+									ServiceJobSetIterator iterator;
+									PolymarkerServiceJob *job_p = NULL;
+
+									InitServiceJobSetIterator (&iterator, service_p -> se_jobs_p);
+
+									job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
+
+									while (job_p)
 										{
-											if (!RunPolymarkerJob (job_p, param_set_p, data_p))
+											if (job_p -> psj_tool_p -> ParseParameters (param_set_p))
 												{
+													if (!RunPolymarkerJob (job_p, param_set_p, data_p))
+														{
+
+														}
 
 												}
 
+											job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
 										}
 
-									job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
 								}
 
+						}		/* if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0) */
+					else
+						{
+							PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "No jobs specified");
 						}
 
-				}		/* if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0) */
-			else
-				{
-					PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "No jobs specified");
-				}
+				}		/* if (service_p -> se_jobs_p) */
 
-		}		/* if (service_p -> se_jobs_p) */
+		}
 
 	return service_p -> se_jobs_p;
 }
@@ -413,8 +451,6 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p)
 {
 	bool success_flag = false;
-	char uuid_s [UUID_STRING_BUFFER_SIZE];
-	char *dir_s = NULL;
 
 	/*
 	 *  bin/polymarker.rb --contigs ~/Applications/grassroots-0/grassroots/extras/blast/databases/IWGSC_CSS_all_scaff_v1.fa --marker_list test/data/billy_primer_design_test.csv --output polymarker_out/

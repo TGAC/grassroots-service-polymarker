@@ -78,7 +78,15 @@ public:
 
 	bool AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p);
 
+	void SetPolymarkerSequence (const PolymarkerSequence *seq_p);
 
+
+	bool SaveJobMetadata () const;
+
+	bool SetJobMetadata ();
+
+
+	bool SetJobUUID (const uuid_t id);
 
 protected:
 	PolymarkerServiceJob *pt_service_job_p;
@@ -88,6 +96,9 @@ protected:
 	char *pt_job_dir_s;
 
 	static const char * const PT_JOB_DIR_S;
+
+private:
+	static const char * const PT_METADATA_FILENAME_S;
 };
 
 

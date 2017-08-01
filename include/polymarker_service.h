@@ -95,10 +95,18 @@ typedef struct PolymarkerSequence
 	/** The name of the database to display to the user. */
 	const char *ps_name_s;
 
+	/** The filename of the fasta file for this sequence. */
 	const char *ps_fasta_filename_s;
 
 	/** The description of the database to display to the user. */
 	const char *ps_description_s;
+
+	/**
+	 * Sets whether the PolymarkerSequence defaults to being searched against
+	 * or not.
+	 */
+	bool ps_active_flag;
+
 } PolymarkerSequence;
 
 
@@ -131,6 +139,7 @@ POLYMARKER_PREFIX NamedParameterType PS_CONTIG_FILENAME POLYMARKER_STRUCT_VAL ("
 POLYMARKER_PREFIX NamedParameterType PS_GENE_ID POLYMARKER_STRUCT_VAL ("Gene", PT_STRING);
 POLYMARKER_PREFIX NamedParameterType PS_TARGET_CHROMOSOME POLYMARKER_STRUCT_VAL ("Chromosome", PT_STRING);
 POLYMARKER_PREFIX NamedParameterType PS_SEQUENCE POLYMARKER_STRUCT_VAL ("Sequence", PT_LARGE_STRING);
+POLYMARKER_PREFIX NamedParameterType PS_JOB_IDS POLYMARKER_STRUCT_VAL ("Previous results", PT_LARGE_STRING);
 
 
 POLYMARKER_PREFIX const char *PS_TOOL_S POLYMARKER_VAL ("tool");

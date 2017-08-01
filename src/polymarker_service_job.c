@@ -33,8 +33,16 @@ PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const Po
 		{
 			PolymarkerTool *tool_p = NULL;
 			ServiceJob * const base_service_job_p = & (poly_job_p -> psj_base_job);
+			const char *name_s = NULL;
+			const char *description_s = NULL;
 
-			InitServiceJob (base_service_job_p, service_p, db_p -> ps_name_s, db_p -> ps_description_s, NULL, NULL, FreePolymarkerServiceJob, NULL);
+			if (db_p)
+				{
+					name_s = db_p -> ps_name_s;
+					description_s = db_p -> ps_description_s;
+				}
+
+			InitServiceJob (base_service_job_p, service_p, name_s, description_s, NULL, NULL, FreePolymarkerServiceJob, NULL);
 
 			tool_p = CreatePolymarkerTool (poly_job_p, db_p, data_p);
 
@@ -271,55 +279,60 @@ void PolymarkerServiceJobCompleted (ServiceJob *job_p)
 }
 
 
+bool AddPolymarkerResult (PolymarkerServiceJob *polymarker_job_p, const char *uuid_s)
+{
+	bool success_flag = false;
+	json_t *result_json_p = json_object ();
+
+	if (result_json_p)
+		{
+			PolymarkerTool *tool_p = polymarker_job_p -> psj_tool_p;
+
+			//bool PolymarkerTool :: AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p)
+
+			if (tool_p -> AddSectionToResult (result_json_p, "primers.csv", "primers", 0))
+				{
+					if (tool_p -> AddSectionToResult (result_json_p, "exons_genes_and_contigs.fa", "exons_genes_and_contigs", 0))
+						{
+							json_t *polymarker_result_json_p = GetResourceAsJSONByParts (PROTOCOL_INLINE_S, NULL, uuid_s, result_json_p);
+
+							if (polymarker_result_json_p)
+								{
+									if (AddResultToServiceJob (& (polymarker_job_p -> psj_base_job), polymarker_result_json_p))
+										{
+											success_flag = true;
+										}
+									else
+										{
+											json_decref (polymarker_result_json_p);
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to append polymarker result for \"%s\"", uuid_s);
+										}
+
+								}		/* if (polymarker_result_json_p) */
+
+						}
+
+				}
+
+			json_decref (result_json_p);
+		}
+
+	return success_flag;
+}
+
+
 bool DeterminePolymarkerResult (PolymarkerServiceJob *polymarker_job_p)
 {
 	bool success_flag = false;
-	Service *service_p = polymarker_job_p -> psj_base_job.sj_service_p;
-	PolymarkerTool *tool_p = polymarker_job_p -> psj_tool_p;
-	char uuid_s [UUID_STRING_BUFFER_SIZE];
 	OperationStatus status = GetServiceJobStatus (& (polymarker_job_p -> psj_base_job));
-
+	char uuid_s [UUID_STRING_BUFFER_SIZE];
 	ConvertUUIDToString (polymarker_job_p -> psj_base_job.sj_id, uuid_s);
 
 	if (status == OS_SUCCEEDED)
 		{
-			PolymarkerServiceData *polymarker_data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
-			json_t *result_json_p = json_object ();
-
-			if (result_json_p)
+			if (!AddPolymarkerResult (polymarker_job_p, uuid_s))
 				{
-
-					//bool PolymarkerTool :: AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p)
-
-					if (tool_p -> AddSectionToResult (result_json_p, "primers.csv", "primers", 0))
-						{
-							if (tool_p -> AddSectionToResult (result_json_p, "exons_genes_and_contigs.fa", "exons_genes_and_contigs", 0))
-								{
-									json_t *polymarker_result_json_p = GetResourceAsJSONByParts (PROTOCOL_INLINE_S, NULL, uuid_s, result_json_p);
-
-									if (polymarker_result_json_p)
-										{
-											if (AddResultToServiceJob (& (polymarker_job_p -> psj_base_job), polymarker_result_json_p))
-												{
-													success_flag = true;
-												}
-											else
-												{
-													json_decref (polymarker_result_json_p);
-													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to append polymarker result for \"%s\"", uuid_s);
-												}
-
-										}		/* if (polymarker_result_json_p) */
-
-								}
-
-						}
-
-					json_decref (result_json_p);
-				}		/* if (result_json_p) */
-			else
-				{
-					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get blast result for \"%s\"", uuid_s);
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get PolymarkerServiceJob result for \"%s\"", uuid_s);
 				}
 
 		}		/* if (status == OS_SUCCEEDED) */
@@ -330,6 +343,7 @@ bool DeterminePolymarkerResult (PolymarkerServiceJob *polymarker_job_p)
 
 	return success_flag;
 }
+
 
 
 static bool CalculatePolymarkerServiceJobResults (ServiceJob *job_p)
