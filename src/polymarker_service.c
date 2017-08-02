@@ -589,7 +589,6 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *param_set_p)
 {
 	uint16 num_added_databases = 0;
-	SharedType def;
 
 	if (data_p -> psd_index_data_size > 0)
 		{
@@ -598,6 +597,7 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 			const json_t *provider_p = NULL;
 			const char *group_to_use_s = NULL;
 			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
+			SharedType def;
 			size_t i = 0;
 
 			provider_p = GetGlobalConfigValue (SERVER_PROVIDER_S);
@@ -616,8 +616,11 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 
 			group_p = CreateAndAddParameterGroupToParameterSet (group_to_use_s, NULL, false, & (data_p -> psd_base_data), param_set_p);
 
+			InitSharedType (&def);
+
 			for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
 				{
+					def.st_boolean_value = db_p -> ps_active_flag;
 
 					if (EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, PT_BOOLEAN, db_p -> ps_name_s, db_p -> ps_name_s, db_p -> ps_description_s, def, PL_ALL))
 						{
