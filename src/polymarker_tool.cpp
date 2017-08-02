@@ -230,6 +230,11 @@ void PolymarkerTool :: SetPolymarkerSequence (const PolymarkerSequence *seq_p)
 }
 
 
+bool PolymarkerTool ::  PreRun ()
+{
+	return SaveJobMetadata ();
+}
+
 
 bool PolymarkerTool :: SaveJobMetadata () const
 {

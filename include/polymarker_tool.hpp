@@ -51,7 +51,7 @@ public:
 
 	virtual bool ParseParameters (const ParameterSet * const param_set_p) = 0;
 
-	virtual bool PreRun () = 0;
+	virtual bool PreRun ();
 
 	virtual OperationStatus Run () = 0;
 

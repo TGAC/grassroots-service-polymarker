@@ -245,9 +245,21 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 
 bool AsyncSystemPolymarkerTool :: PreRun ()
 {
-	SetServiceJobStatus (& (pt_service_job_p -> psj_base_job), OS_STARTED);
+	bool success_flag = PolymarkerTool :: PreRun ();
+	OperationStatus status;
 
-	return true;
+	if (success_flag)
+		{
+			status = OS_STARTED;
+		}
+	else
+		{
+			status = OS_FAILED_TO_START;
+		}
+
+	SetServiceJobStatus (& (pt_service_job_p -> psj_base_job), status);
+
+	return success_flag;
 }
 
 
@@ -259,7 +271,7 @@ bool AsyncSystemPolymarkerTool :: PostRun ()
 
 OperationStatus AsyncSystemPolymarkerTool :: Run ()
 {
-	OperationStatus status = OS_FAILED_TO_START;
+	OperationStatus status = OS_IDLE;
 	char uuid_s [UUID_STRING_BUFFER_SIZE];
 	ServiceJob *base_job_p = & (pt_service_job_p -> psj_base_job);
 
