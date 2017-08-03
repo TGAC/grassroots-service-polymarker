@@ -192,11 +192,23 @@ static bool WriteParameterValues (ParameterGroup *group_p, FILE *marker_f)
 						{
 							if (value.st_string_value_s)
 								{
-									if (fprintf (marker_f, "%s", value.st_string_value_s) > 0)
+									/*
+									 * This sequence could be of the form ATCG[C/A]TGCA... or
+									 * in the grassroots markup from the blast service.
+									 */
+									char *sequence_s = ParseSequence (value.st_string_value_s);
+
+									if (sequence_s)
 										{
-											success_flag = true;
-										}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
+											success_flag = (fprintf (marker_f, "%s", sequence_s) > 0);
+											FreeCopiedString (sequence_s);
+										}
 									else
+										{
+											success_flag = (fprintf (marker_f, "%s", value.st_string_value_s) > 0);
+										}
+
+									if (!success_flag)
 										{
 											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, value.st_string_value_s);
 										}
@@ -318,5 +330,32 @@ ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *
 }
 
 
+
+static char *ParseSequence (const char * const value_s)
+{
+	char *sequence_s = NULL;
+	json_error_t err;
+	json_t *seq_json_p = json_loads (value_s, 0, &err);
+
+	if (seq_json_p)
+		{
+			ByteBuffer *buffer_p = AllocateByteBuffer (1024);
+
+			if (buffer_p)
+				{
+
+					FreeByteBuffer (buffer_p);
+				}
+			else
+				{
+
+				}
+
+			json_decref (seq_json_p);
+		}		/* if (seq_json_p) */
+
+
+	return sequence_s;
+}
 
 
