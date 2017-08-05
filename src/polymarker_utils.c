@@ -25,6 +25,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "polymarker_utils.h"
 #include "parameter_set.h"
@@ -41,6 +42,12 @@
 
 static bool WriteParameterValues (ParameterGroup *group_p, FILE *marker_f);
 
+static char *ParseSequence (const char * const value_s);
+
+
+static bool GetPosition (const json_t *polymorphism_p, const char * const key_s, uint32 *index_p);
+
+static bool GetSequenceDifferences (const json_t *polymorphism_p, const char **query_ss, const char **hit_ss);
 
 /*
  * API DEFINTIIONS
@@ -333,7 +340,7 @@ ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *
 
 static char *ParseSequence (const char * const value_s)
 {
-	char *sequence_s = NULL;
+	char *parsed_sequence_s = NULL;
 	json_error_t err;
 	json_t *seq_json_p = json_loads (value_s, 0, &err);
 
@@ -343,8 +350,139 @@ static char *ParseSequence (const char * const value_s)
 
 			if (buffer_p)
 				{
+					const char * const key_s = "query_sequence";
+					const char *sequence_s = GetJSONString (seq_json_p, key_s);
 
-					FreeByteBuffer (buffer_p);
+					if (sequence_s)
+						{
+							json_t *polymorphisms_p =  json_object_get (seq_json_p, "polymorphisms");
+
+							if (polymorphisms_p)
+								{
+									if (json_is_array (polymorphisms_p))
+										{
+											bool success_flag = true;
+											size_t i = 0;
+											uint32 previous_end_index = 0;
+											const size_t num_polymorphisms = json_array_size (polymorphisms_p);
+
+											while ((i < num_polymorphisms) && success_flag)
+												{
+													json_t *polymorphism_p = json_array_get (polymorphisms_p, i);
+													uint32 begin_index;
+
+													if (GetPosition (polymorphism_p, "faldo:begin", &begin_index))
+														{
+															uint32 end_index;
+
+															if (GetPosition (polymorphism_p, "faldo:end", &end_index))
+																{
+																	const char *query_s;
+																	const char *hit_s;
+
+																	if (GetSequenceDifferences (polymorphism_p, &query_s, &hit_s))
+																		{
+																			uint32 chunk_length = begin_index - previous_end_index - 1;
+																			const size_t mnp_length = strlen (query_s);
+
+																			if (AppendToByteBuffer (buffer_p, sequence_s, chunk_length))
+																				{
+																					size_t j;
+																					char query_buffer_s [2];
+																					char hit_buffer_s [2];
+
+																					* (query_buffer_s + 1) = '\0';
+																					* (hit_buffer_s + 1) = '\0';
+
+																					chunk_length += mnp_length;
+
+																					sequence_s += chunk_length;
+																					previous_end_index += chunk_length;
+
+																					for (j = 0; j < mnp_length; ++ j, ++ hit_s, ++ query_s)
+																						{
+																							*query_buffer_s = *query_s;
+																							*hit_buffer_s = *hit_s;
+
+																							if (!AppendStringsToByteBuffer (buffer_p, "[", query_buffer_s, "/", hit_buffer_s, "]", NULL))
+																								{
+																									j = mnp_length;
+																									success_flag = false;
+																								}
+																						}
+
+																					if (success_flag)
+																						{
+																							++ i;
+																						}
+																					else
+																						{
+																							PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymorphism_p, "Failed to add sequence differences [%s/%s] to buffer", query_s, hit_s);
+																						}
+
+																				}		/* if (AppendToByteBuffer (buffer_p, sequence_s, chunk_length)) */
+																			else
+																				{
+																					success_flag = false;		/* force exit from loop */
+																					PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymorphism_p, "Failed to add sequence chunk to buffer");
+																				}
+
+																		}		/* if (GetSequenceDifferences (polymorphism_p, &query_s, &hit_s)) */
+																	else
+																		{
+																			success_flag = false;		/* force exit from loop */
+																			PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymorphism_p, "Failed to get sequence differences from polymorphism");
+																		}
+
+																}		/* if (GetPosition (polymorphism_p, "faldo:end", &end_index)) */
+															else
+																{
+																	success_flag = false;		/* force exit from loop */
+																	PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymorphism_p, "Failed to get \"faldo:end\" from polymorphism");
+																}
+
+														}		/* if (GetPosition (polymorphism_p, "faldo:begin", &begin_index)) */
+													else
+														{
+															success_flag = false;		/* force exit from loop */
+															PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymorphism_p, "Failed to get \"faldo:begin\" from polymorphism");
+														}
+
+												}		/* for (i = 0; i < num_polymorphisms; ++ i) */
+
+											if (success_flag)
+												{
+													/* Add the remaining sequence */
+													if (AppendStringToByteBuffer (buffer_p, sequence_s))
+														{
+															parsed_sequence_s = DetachByteBufferData (buffer_p);
+															buffer_p = NULL;
+
+														}
+													else
+														{
+															success_flag = false;
+														}
+												}
+
+										}		/* if (json_is_array (polymorphisms_p)) */
+
+								}		/* if (polymorphisms_p) */
+							else
+								{
+
+								}
+
+						}		/* if (sequence_s) */
+					else
+						{
+
+						}
+
+					if (buffer_p)
+						{
+							FreeByteBuffer (buffer_p);
+						}
 				}
 			else
 				{
@@ -355,7 +493,55 @@ static char *ParseSequence (const char * const value_s)
 		}		/* if (seq_json_p) */
 
 
-	return sequence_s;
+	return parsed_sequence_s;
 }
 
+
+static bool GetPosition (const json_t *polymorphism_p, const char * const key_s, uint32 *index_p)
+{
+	bool success_flag = false;
+	const json_t *locus_p = json_object_get (polymorphism_p, "locus");
+
+	if (locus_p)
+		{
+			const json_t *position_p = json_object_get (locus_p, key_s);
+
+			if (position_p)
+				{
+					success_flag = GetJSONInteger (position_p, "faldo:position", (int *) index_p);
+				}		/* if (position_p) */
+
+		}		/* if (locus_p) */
+
+	return success_flag;
+}
+
+
+static bool GetSequenceDifferences (const json_t *polymorphism_p, const char **query_ss, const char **hit_ss)
+{
+	bool success_flag = false;
+	const json_t *sequence_difference_p = json_object_get (polymorphism_p, "sequence_difference");
+
+	if (sequence_difference_p)
+		{
+			const char *query_s = GetJSONString (sequence_difference_p, "query");
+
+			if (query_s)
+				{
+					const char *hit_s = GetJSONString (sequence_difference_p, "hit");
+
+					if (hit_s)
+						{
+							*query_ss = query_s;
+							*hit_ss = hit_s;
+
+							success_flag = true;
+						}		/* if (hit_s) */
+
+				}		/* if (query_s) */
+
+		}		/* if (sequence_difference_p) */
+
+	return success_flag;
+}
 
