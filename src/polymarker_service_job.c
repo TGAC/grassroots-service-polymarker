@@ -68,9 +68,7 @@ void FreePolymarkerServiceJob (ServiceJob *job_p)
 			FreePolymarkerTool (poly_job_p -> psj_tool_p);
 		}
 
-	ClearServiceJob (job_p);
-
-	FreeMemory (poly_job_p);
+	FreeBaseServiceJob (job_p);
 }
 
 
