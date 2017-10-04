@@ -1,4 +1,4 @@
-﻿Polymarker Service 
+﻿Polymarker Service {#polymarker_service}
 ==============
 
 The [Polymarker](http://polymarker.tgac.ac.uk/) Service is an automated bioinformatics pipeline for SNP assay development which increases the probability of generating homoeologue-specific assays for polyploid wheat.
@@ -13,15 +13,22 @@ The files to build the Polymarker service are in the ```build/<platform>``` dire
 
 If you enter this directory 
 
-```cd build/linux```
+~~~
+cd build/linux
+~~~
+
 
 you can then build the service by typing
 
-```make all```
+~~~
+make all
+~~~
 
 and then 
 
-```make install```
+~~~
+make install
+~~~
 
 to install the service into the Grassroots system where it will be available for use immediately.
 
