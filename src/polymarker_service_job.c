@@ -101,7 +101,6 @@ ServiceJob *GetPolymarkerServiceJobFromJSON (struct Service *service_p, const js
 			if (polymarker_job_p)
 				{
 					polymarker_job_p -> psj_tool_p = NULL;
-					polymarker_job_p -> psj_process_id = -1;
 
 					if (InitServiceJobFromJSON (& (polymarker_job_p -> psj_base_job), job_json_p))
 						{
@@ -213,18 +212,7 @@ json_t *ConvertPolymarkerServiceJobToJSON (Service * UNUSED_PARAM (service_p), S
 										{
 											if (json_object_set_new (polymarker_job_json_p, PSJ_JOB_S, base_job_json_p) == 0)
 												{
-													PolymarkerServiceJob *poly_job_p = (PolymarkerServiceJob *) service_job_p;
-
-													if (json_object_set_new (polymarker_job_json_p, PSJ_PROCESS_ID_S, json_integer (poly_job_p -> psj_process_id)) == 0)
-														{
-
-															return polymarker_job_json_p;
-														}
-													else
-														{
-															PrintJSONToErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, polymarker_job_json_p, "Failed to add %s =" UINT32_FMT " for job %s", PSJ_PROCESS_ID_S, poly_job_p -> psj_process_id, uuid_s);
-														}
-
+													return polymarker_job_json_p;
 												}		/* if (json_object_set_new (blast_job_json_p, BSJ_JOB_S, base_job_json_p) == 0) */
 											else
 												{

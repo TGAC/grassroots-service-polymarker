@@ -108,14 +108,13 @@ extern "C"
 #endif
 
 
-PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p);
+POLYMARKER_SERVICE_LOCAL PolymarkerTool *CreatePolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p);
 
-PolymarkerTool *CreatePolymarkerToolFromJSON (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p, const json_t *service_job_json_p);
+POLYMARKER_SERVICE_LOCAL PolymarkerTool *CreatePolymarkerToolFromJSON (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p, const json_t *service_job_json_p);
 
-void FreePolymarkerTool (PolymarkerTool *tool_p);
+POLYMARKER_SERVICE_LOCAL void FreePolymarkerTool (PolymarkerTool *tool_p);
 
-
-OperationStatus RunPolymarkerTool (PolymarkerTool *tool_p);
+POLYMARKER_SERVICE_LOCAL OperationStatus RunPolymarkerTool (PolymarkerTool *tool_p);
 
 
 #ifdef __cplusplus

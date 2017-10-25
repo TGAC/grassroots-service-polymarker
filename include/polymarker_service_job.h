@@ -16,12 +16,17 @@
 class PolymarkerTool;
 
 
+/**
+ * A datatype for storing a ServiceJob
+ * for the PolymarkerService with its
+ * extra associated fields.
+ */
 typedef struct PolymarkerServiceJob
 {
+	/** The base ServiceJob */
 	ServiceJob psj_base_job;
 
-	int32 psj_process_id;
-
+	/** The PolymarkerTool used for this PolymarkerServiceJob */
 	PolymarkerTool *psj_tool_p;
 
 } PolymarkerServiceJob;

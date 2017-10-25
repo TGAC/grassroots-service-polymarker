@@ -61,9 +61,9 @@
  *
  * 		const char *SERVICE_NAME_S = "path";
  *
- * ALLOCATE_JSON_TAGS must be defined only once prior to
+ * ALLOCATE_POLYMARKER_TAGS must be defined only once prior to
  * including this header file. Currently this happens in
- * json_util.c.
+ * polymarker_service.c.
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -79,17 +79,30 @@
 
 #endif 		/* #ifndef DOXYGEN_SHOULD_SKIP_THIS */
 
-
+/**
+ * An enum listing the different types of PolymarkerTool
+ * that are available
+ */
 typedef enum
 {
+	/** The web-based tool */
 	PTT_WEB,
+
+	/**
+	 * Run the Polymarker program directly on the server.
+	 */
 	PTT_SYSTEM,
+
+	/** The number of different PolymarkerTools available */
 	PTT_NUM_TYPES
 } PolymarkerToolType;
 
 
 
-
+/**
+ * A datatype that stores the information of sequence data
+ * that the PolymarkerService can run with.
+ */
 typedef struct PolymarkerSequence
 {
 	/** The name of the database to display to the user. */
@@ -110,9 +123,15 @@ typedef struct PolymarkerSequence
 } PolymarkerSequence;
 
 
+/**
+ * The ServiceData used for the PolymarkerService.
+ */
 typedef struct PolymarkerServiceData
 {
+	/** The base ServiceData. */
 	ServiceData psd_base_data;
+
+	/** The type of tool that this PolymarkerService will use. */
 	PolymarkerToolType psd_tool_type;
 
 	/**
@@ -122,13 +141,28 @@ typedef struct PolymarkerServiceData
 	const char *psd_working_dir_s;
 
 
+	/**
+	 * If the system-based PolymarkerTool is to be used, this is the executable
+	 * that the system-based PolymarkerTool will use.
+	 */
 	const char *psd_executable_s;
 
+	/**
+	 * An array of available PolymarkerSequence objects that the PolymarkrService
+	 * can run against.
+	 */
 	PolymarkerSequence *psd_index_data_p;
 
+	/**
+	 * The number of PolymarkerSequence objects stored in psd_index_data_p.
+	 */
 	size_t psd_index_data_size;
 
 
+	/**
+	 * The AsyncTasksManager used for coordinating the PolymarkerServiceJobs
+	 * being run.
+	 */
 	AsyncTasksManager *psd_task_manager_p;
 
 } PolymarkerServiceData;
@@ -141,9 +175,13 @@ POLYMARKER_PREFIX NamedParameterType PS_TARGET_CHROMOSOME POLYMARKER_STRUCT_VAL 
 POLYMARKER_PREFIX NamedParameterType PS_SEQUENCE POLYMARKER_STRUCT_VAL ("Sequence", PT_LARGE_STRING);
 POLYMARKER_PREFIX NamedParameterType PS_JOB_IDS POLYMARKER_STRUCT_VAL ("Previous results", PT_LARGE_STRING);
 
-
+/** The constant string for configuring the tool that Polymarker will use. */
 POLYMARKER_PREFIX const char *PS_TOOL_S POLYMARKER_VAL ("tool");
+
+/** The constant string for denoting that Polymarker will use the system-based tool. */
 POLYMARKER_PREFIX const char *PS_TOOL_SYSTEM_S POLYMARKER_VAL ("system");
+
+/** The constant string for denoting that Polymarker will use the web-based tool. */
 POLYMARKER_PREFIX const char *PS_TOOL_WEB_S POLYMARKER_VAL ("web");
 
 
@@ -156,7 +194,8 @@ extern "C"
 /**
  * Get the ServicesArray containing the Polymarker Services.
  *
- * @param config_p The service configuration data.
+ * @param user_p The UserDetails for the user trying to access the services.
+ * This can be <code>NULL</code>.
  * @return The ServicesArray containing all of the Polymarker Services or
  * <code>NULL</code> upon error.
  * @ingroup polymarker_service
