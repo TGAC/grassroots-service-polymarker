@@ -35,7 +35,9 @@
 
 class PolymarkerFormatter;
 
-
+/**
+ * The base class for the object that will actually run the Polymarker application
+ */
 class POLYMARKER_SERVICE_LOCAL PolymarkerTool
 {
 public:
@@ -43,14 +45,27 @@ public:
 
 	PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerSequence *seq_p, const PolymarkerServiceData *data_p, const json_t *root_p);
 
+	/**
+	 * The PolymarkerTool destructor
+	 */
 	virtual ~PolymarkerTool ();
 
-
+	/**
+	 * Get the name of this PolymarkerTool.
+	 *
+	 * @return the name
+	 */
 	const char *GetName ();
 
 
 	virtual bool ParseParameters (const ParameterSet * const param_set_p) = 0;
 
+	/**
+	 * The function to call before trying to run this PolymarkerTool.
+	 *
+	 * @return <code>true</code> if the call was successful, <code>
+	 * false</code> otherwise
+	 */
 	virtual bool PreRun ();
 
 	virtual OperationStatus Run () = 0;
@@ -112,8 +127,26 @@ POLYMARKER_SERVICE_LOCAL PolymarkerTool *CreatePolymarkerTool (PolymarkerService
 
 POLYMARKER_SERVICE_LOCAL PolymarkerTool *CreatePolymarkerToolFromJSON (PolymarkerServiceJob *job_p, const PolymarkerSequence *sequence_p, PolymarkerServiceData *data_p, const json_t *service_job_json_p);
 
+/**
+ * Free a given PolymarkerTool.
+ *
+ * This is simply a C-wrapper function around the PolymarkerTool destructor.
+ *
+ * @param tool_p The PolymarkerTool to free
+ * @memberof PolymarkerTool
+ */
 POLYMARKER_SERVICE_LOCAL void FreePolymarkerTool (PolymarkerTool *tool_p);
 
+
+/**
+ * Run a given PolymarkerTool.
+ *
+ * This is simply a C-wrapper function around the PolymarkerTool::run() function.
+ *
+ * @param tool_p The PolymarkerTool to run.
+ * @return The OperationStatus of the PolymarkerTool.
+ * @memberof PolymarkerTool
+ */
 POLYMARKER_SERVICE_LOCAL OperationStatus RunPolymarkerTool (PolymarkerTool *tool_p);
 
 

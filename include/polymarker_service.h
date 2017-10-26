@@ -168,12 +168,35 @@ typedef struct PolymarkerServiceData
 } PolymarkerServiceData;
 
 
-
+/**
+ * The NamedParameterType for the contig filename parameter.
+ */
 POLYMARKER_PREFIX NamedParameterType PS_CONTIG_FILENAME POLYMARKER_STRUCT_VAL ("Contig filename", PT_STRING);
+
+
+/**
+ * The NamedParameterType for the gene ID parameter.
+ */
 POLYMARKER_PREFIX NamedParameterType PS_GENE_ID POLYMARKER_STRUCT_VAL ("Gene", PT_STRING);
+
+/**
+ * The NamedParameterType for the target chromosome parameter.
+ */
 POLYMARKER_PREFIX NamedParameterType PS_TARGET_CHROMOSOME POLYMARKER_STRUCT_VAL ("Chromosome", PT_STRING);
+
+
+/**
+ * The NamedParameterType for the sequence parameter.
+ */
 POLYMARKER_PREFIX NamedParameterType PS_SEQUENCE POLYMARKER_STRUCT_VAL ("Sequence", PT_LARGE_STRING);
+
+
+/**
+ * The NamedParameterType for the parameter used for retrieving the results of
+ * previously-run jobs.
+ */
 POLYMARKER_PREFIX NamedParameterType PS_JOB_IDS POLYMARKER_STRUCT_VAL ("Previous results", PT_LARGE_STRING);
+
 
 /** The constant string for configuring the tool that Polymarker will use. */
 POLYMARKER_PREFIX const char *PS_TOOL_S POLYMARKER_VAL ("tool");
