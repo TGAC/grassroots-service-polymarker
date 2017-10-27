@@ -361,18 +361,29 @@ container.add_alignments({:exonerate_file=>exonerate_file, :arm_selection=>optio
 
 #4.1 generating primer3 file
 write_status "Running primer3"
+
+
+write_status "opening #{exons_filename}"
 file = File.open(exons_filename, "w")
 container.print_fasta_snp_exones(file)
 file.close
+write_status "closing #{exons_filename}"
 
+write_status "opening #{primer_3_input}"
 file = File.open(primer_3_input, "w")
 
+write_status "prepare_input_file #{primer_3_input}"
 Bio::DB::Primer3.prepare_input_file(file, options[:primer_3_preferences])
+
+write_status "adding exons"
 added_exons = container.print_primer_3_exons(file, nil, snp_in)
+
+write_status "closing #{primer_3_input}"
 file.close
 
+write_status "Running in #{primer_3_input} out #{primer_3_output} added_exons #{added_exons}"
 Bio::DB::Primer3.run({:in=>primer_3_input, :out=>primer_3_output}) if added_exons > 0
-
+write_status "Ran primer3"
 
 #5. Pick the best primer and make the primer3 output
 write_status "Selecting best primers"

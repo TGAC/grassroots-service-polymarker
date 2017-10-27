@@ -118,7 +118,6 @@ PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerS
 	:  pt_service_job_p (job_p), pt_seq_p (seq_p), pt_service_data_p  (data_p)
 {
 	job_p -> psj_tool_p = this;
-	pt_process_id = 0;
 	pt_job_dir_s = 0;
 }
 

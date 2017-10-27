@@ -57,11 +57,18 @@ public:
 	 */
 	const char *GetName ();
 
-
+	/**
+	 * Parse a ParameterSet to set the variables that the PolymarkerTool's ServiceJob
+	 * will run with.
+	 *
+	 * @param param_set_p The ParameterSet that the variables will be set from.
+	 * @return <code>true</code> if the required variables were collected successfully, <code>
+	 * false</code> otherwise
+	 */
 	virtual bool ParseParameters (const ParameterSet * const param_set_p) = 0;
 
 	/**
-	 * The function to call before trying to run this PolymarkerTool.
+	 * The function that will be called before trying to run this PolymarkerTool.
 	 *
 	 * @return <code>true</code> if the call was successful, <code>
 	 * false</code> otherwise
@@ -70,8 +77,22 @@ public:
 
 	virtual OperationStatus Run () = 0;
 
+	/**
+	 * The function that will be called after running this PolymarkerTool.
+	 *
+	 * @return <code>true</code> if the call was successful, <code>
+	 * false</code> otherwise
+	 */
 	virtual bool PostRun () = 0;
 
+	/**
+	 * Get the OperationStatus for the ServiceJob that this PolymarkerTool is running.
+	 *
+	 * @param update_flag If this is <code>true</code>, then the ServiceJob will be checked
+	 * for its latest status. If this is <code>false</code>, then the last cached value will
+	 * be used.
+	 * @return The OperationStatus for this PolymarkerTool's ServiceJob.
+	 */
 	virtual OperationStatus GetStatus (bool update_flag) = 0;
 
 
@@ -79,20 +100,46 @@ public:
 	 * Get the log after the PolymarkerTool has finished
 	 * running.
 	 *
-	 * @return The results as a c-style string or 0 upon error.
+	 * @return The logging messages as a c-style string or 0 upon error.
 	 */
 	virtual char *GetLog () = 0;
 
 
+	/**
+	 * Get the results from the run of this PolymarkerTool.
+	 *
+	 * @param formatter_p The PolymarkerFormatter used to
+	 * @return The results as a c-style string or 0 upon error.
+	 */
 	virtual char *GetResults (PolymarkerFormatter *formatter_p) = 0;
 
-
+	/**
+	 * Add the required information for this PolymarkerTool to be serialised
+	 * to JSON and deserialised again.
+	 *
+	 * This is called by each child class of PolymarkerTool all the way down
+	 * to the actual PolymarkerTool child object that is being used.
+	 *
+	 * @param root_p The JSON fragment that the required details will be added to
+	 * @return <code>true</code> if the information was added successfully, <code>
+	 * false</code> otherwise
+	 */
 	virtual bool AddToJSON (json_t *root_p);
 
+	/**
+	 * Get the PolymarkerToolType for this PolymarkerTool.
+	 *
+	 * @return The PolymarkerToolType.
+	 */
 	virtual PolymarkerToolType GetToolType () const = 0;
 
 	bool AddSectionToResult (json_t *result_p, const char * const filename_s, const char * const key_s, PolymarkerFormatter *formatter_p);
 
+	/**
+	 * Set the PolymarkerSequence that this PolymarkerTool will run against.
+	 *
+	 * @param seq_p The PolymarkerSequence to use.
+	 */
 	void SetPolymarkerSequence (const PolymarkerSequence *seq_p);
 
 
@@ -104,12 +151,32 @@ public:
 	bool SetJobUUID (const uuid_t id);
 
 protected:
+	/**
+	 * The PolymarkerServiceJob that this PolymarkerTool will run.
+	 */
 	PolymarkerServiceJob *pt_service_job_p;
+
+	/**
+	 * The PolymarkerSequence that this PolymarkerTool's ServiceJob
+	 * will be running against.
+	 */
 	const PolymarkerSequence *pt_seq_p;
+
+	/**
+	 * The PolymarkerServiceData for the PolymarkerService that will
+	 * be running this PolymarkerTool.
+	 */
 	const PolymarkerServiceData *pt_service_data_p;
-	int32 pt_process_id;
+
+	/**
+	 * The local directory where the results and logging data will be stored.
+	 */
 	char *pt_job_dir_s;
 
+	/**
+	 * The key used for specifying the PolymarkerTool's job directory within
+	 * and JSON-based serialisations of a PolymarkerTool.
+	 */
 	static const char * const PT_JOB_DIR_S;
 
 private:
