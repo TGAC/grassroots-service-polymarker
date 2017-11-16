@@ -96,6 +96,7 @@ static bool PreRunJobs (PolymarkerServiceData *data_p);
 
 static void SetPolymarkerSequenceConfig (PolymarkerSequence *seq_p, const json_t *config_p);
 
+static ServiceMetadata *GetPolymarkerServiceMetadata (Service *service_p);
 
 /*
  * API FUNCTIONS
@@ -115,7 +116,7 @@ ServicesArray *GetServices (UserDetails *user_p)
 					if (data_p)
 						{
 
-							InitialiseService (service_p,
+							if (InitialiseService (service_p,
 								GetPolymarkerServiceName,
 								GetPolymarkerServiceDesciption,
 								NULL,
@@ -127,18 +128,20 @@ ServicesArray *GetServices (UserDetails *user_p)
 								CustomisePolymarkerServiceJob,
 								true,
 								SY_ASYNCHRONOUS_ATTACHED,
-								(ServiceData *) data_p);
-							
-							if (GetPolymarkerServiceConfig (data_p))
+								(ServiceData *) data_p,
+								GetPolymarkerServiceMetadata))
 								{
-									* (services_p -> sa_services_pp) = service_p;
+							
+									if (GetPolymarkerServiceConfig (data_p))
+										{
+											* (services_p -> sa_services_pp) = service_p;
 
-									service_p -> se_deserialise_job_json_fn = GetPolymarkerServiceJobFromJSON;
-									service_p -> se_serialise_job_json_fn = ConvertPolymarkerServiceJobToJSON;
+											service_p -> se_deserialise_job_json_fn = GetPolymarkerServiceJobFromJSON;
+											service_p -> se_serialise_job_json_fn = ConvertPolymarkerServiceJobToJSON;
 
-									return services_p;
+											return services_p;
+										}
 								}
-
 						}
 
 					FreeServicesArray (services_p);
@@ -445,6 +448,142 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 		}
 
 	return service_p -> se_jobs_p;
+}
+
+
+
+static ServiceMetadata *GetPolymarkerServiceMetadata (Service *service_p)
+{
+	const char *term_url_s = CONTEXT_PREFIX_EDAM_ONTOLOGY_S "operation_2419";
+	SchemaTerm *category_p = AllocateSchemaTerm (term_url_s, "Primer and probe design", "Predict oligonucleotide primers or probes.");
+
+	if (category_p)
+		{
+			SchemaTerm *subcategory_p = NULL;
+
+			term_url_s = CONTEXT_PREFIX_EDAM_ONTOLOGY_S "topic_0632";
+
+			subcategory_p = AllocateSchemaTerm (term_url_s, "Probes and primers", "This includes the design of primers for PCR and DNA "
+				"amplification or the design of molecular probes. Molecular probes (e.g. a peptide probe or DNA microarray probe) or PCR "
+				"primers and hybridisation oligos in a nucleic acid sequence.");
+
+
+			if (subcategory_p)
+				{
+					ServiceMetadata *metadata_p = AllocateServiceMetadata (category_p, NULL);
+
+					if (metadata_p)
+						{
+							SchemaTerm *input_p;
+
+							/* Gene ID */
+							term_url_s = CONTEXT_PREFIX_EDAM_ONTOLOGY_S "data_2295";
+							input_p = AllocateSchemaTerm (term_url_s, "Gene ID", "A unique (and typically persistent) identifier of a gene in a database, "
+								"that is (typically) different to the gene name/symbol.");
+
+							if (input_p)
+								{
+									if (AddSchemaTermToServiceMetadataInput (metadata_p, input_p))
+										{
+											/* Target chromosome */
+											term_url_s = CONTEXT_PREFIX_EDAM_ONTOLOGY_S "data_0987";
+											input_p = AllocateSchemaTerm (term_url_s, "Chromosome name", "Name of a chromosome.");
+
+											if (input_p)
+												{
+													if (AddSchemaTermToServiceMetadataInput (metadata_p, input_p))
+														{
+
+															/* Sequence */
+															term_url_s = CONTEXT_PREFIX_EDAM_ONTOLOGY_S "data_2044";
+															input_p = AllocateSchemaTerm (term_url_s, "Sequence", "This concept is a placeholder of concepts for primary sequence "
+																"data including raw sequences and sequence records. It should not normally be used for derivatives such as sequence "
+																"alignments, motifs or profiles. One or more molecular sequences, possibly with associated annotation.");
+
+															if (input_p)
+																{
+																	if (AddSchemaTermToServiceMetadataInput (metadata_p, input_p))
+																		{
+																			SchemaTerm *output_p;
+
+																				term_url_s = CONTEXT_PREFIX_EDAM_ONTOLOGY_S "data_0863";
+																				output_p = AllocateSchemaTerm (term_url_s, "Sequence alignment", "Alignment of multiple molecular sequences.");
+
+																				if (output_p)
+																					{
+																						if (AddSchemaTermToServiceMetadataOutput (metadata_p, output_p))
+																							{
+																								return metadata_p;
+																							}		/* if (AddSchemaTermToServiceMetadataOutput (metadata_p, output_p)) */
+																						else
+																							{
+																								PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add output term %s to service metadata", term_url_s);
+																								FreeSchemaTerm (output_p);
+																							}
+
+																					}		/* if (output_p) */
+																				else
+																					{
+																						PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate output term %s for service metadata", term_url_s);
+																					}
+
+																		}		/* if (AddSchemaTermToServiceMetadataInput (metadata_p, input_p)) */
+																	else
+																		{
+																			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add input term %s to service metadata", term_url_s);
+																			FreeSchemaTerm (input_p);
+																		}
+
+																}		/* if (input_p) */
+															else
+																{
+																	PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate input term %s for service metadata", term_url_s);
+																}
+
+														}		/* if (AddSchemaTermToServiceMetadataInput (metadata_p, input_p)) */
+													else
+														{
+															PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add input term %s to service metadata", term_url_s);
+															FreeSchemaTerm (input_p);
+														}
+												}
+											else
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate input term %s for service metadata", term_url_s);
+												}
+
+										}		/* if (AddSchemaTermToServiceMetadataInput (metadata_p, input_p)) */
+									else
+										{
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add input term %s to service metadata", term_url_s);
+											FreeSchemaTerm (input_p);
+										}
+
+								}		/* if (input_p) */
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate input term %s for service metadata", term_url_s);
+								}
+
+						}		/* if (metadata_p) */
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate service metadata");
+						}
+
+				}		/* if (subcategory_p) */
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate subcategory term %s for service metadata", term_url_s);
+				}
+
+		}		/* if (category_p) */
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate category term %s for service metadata", term_url_s);
+		}
+
+	return NULL;
 }
 
 
