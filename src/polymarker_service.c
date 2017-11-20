@@ -320,7 +320,10 @@ static const char *GetPolymarkerServiceName (Service * UNUSED_PARAM (service_p))
 
 static const char *GetPolymarkerServiceDesciption (Service * UNUSED_PARAM (service_p))
 {
-	return "A service using Polymarker";
+	return "PolyMarker is an automated bioinformatics pipeline for SNP assay development which increases "
+		"the probability of generating homoeologue-specific assays for polyploid wheat. PolyMarker generates "
+		"a multiple alignment between the target SNP sequence and the IWGSC chromosome survey sequences (IWGSC, 2014 ) for each of the three wheat genomes. "
+		"It then generates a mask with informative positions which are highlighted with respect to the target genome.";
 }
 
 
