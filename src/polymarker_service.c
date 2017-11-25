@@ -473,7 +473,7 @@ static ServiceMetadata *GetPolymarkerServiceMetadata (Service *service_p)
 
 			if (subcategory_p)
 				{
-					ServiceMetadata *metadata_p = AllocateServiceMetadata (category_p, NULL);
+					ServiceMetadata *metadata_p = AllocateServiceMetadata (category_p, subcategory_p);
 
 					if (metadata_p)
 						{
