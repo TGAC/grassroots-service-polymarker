@@ -82,7 +82,7 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 
 
-static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, PolymarkerServiceData *data_p);
+static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, Service *service_p, PolymarkerServiceData *data_p);
 
 static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_set_p, PolymarkerServiceData *data_p);
 
@@ -97,6 +97,9 @@ static bool PreRunJobs (PolymarkerServiceData *data_p);
 static void SetPolymarkerSequenceConfig (PolymarkerSequence *seq_p, const json_t *config_p);
 
 static ServiceMetadata *GetPolymarkerServiceMetadata (Service *service_p);
+
+
+static bool CleanupAsyncPolymarkerService (void *data_p);
 
 /*
  * API FUNCTIONS
@@ -191,7 +194,9 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 			if (data_p -> psd_tool_type == PTT_SYSTEM)
 				{
-					data_p -> psd_task_manager_p = AllocateAsyncTasksManager (GetServiceName (data_p -> psd_base_data.sd_service_p));
+					Service *service_p = data_p -> psd_base_data.sd_service_p;
+
+					data_p -> psd_task_manager_p = AllocateAsyncTasksManager (GetServiceName (service_p), CleanupAsyncPolymarkerService, service_p);
 
 					if (! (data_p -> psd_task_manager_p))
 						{
@@ -411,7 +416,7 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 
 			if (service_p -> se_jobs_p)
 				{
-					PreparePolymarkerServiceJobs (param_set_p, service_p -> se_jobs_p, data_p);
+					PreparePolymarkerServiceJobs (param_set_p, service_p, data_p);
 
 					if (GetServiceJobSetSize (service_p -> se_jobs_p) > 0)
 						{
@@ -684,7 +689,7 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 }
 
 
-static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, ServiceJobSet *jobs_p, PolymarkerServiceData *data_p)
+static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, Service *service_p, PolymarkerServiceData *data_p)
 {
 	PolymarkerSequence *db_p = data_p -> psd_index_data_p;
 	size_t i = 0;
@@ -699,11 +704,11 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 					/* Is the database selected to search against? */
 					if (param_p -> pa_current_value.st_boolean_value)
 						{
-							PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (jobs_p -> sjs_service_p, db_p, data_p);
+							PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (service_p, db_p, data_p);
 
 							if (job_p)
 								{
-									if (!AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p))
+									if (!AddServiceJobToService (service_p, (ServiceJob *) job_p, false))
 										{
 											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_p -> ps_name_s);
 											FreePolymarkerServiceJob (& (job_p -> psj_base_job));
@@ -823,3 +828,11 @@ static bool PreRunJobs (PolymarkerServiceData *data_p)
 
 
 
+static bool CleanupAsyncPolymarkerService (void *data_p)
+{
+	Service *polymarker_service_p = (Service *) data_p;
+
+	FreeService (polymarker_service_p);
+
+	return true;
+}

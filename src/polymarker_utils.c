@@ -268,7 +268,7 @@ ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *
 
 									if (polymarker_job_p -> psj_tool_p -> SetJobUUID (job_id))
 										{
-											if (AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p))
+											if (AddServiceJobToService (service_p, (ServiceJob *) job_p, false))
 												{
 													if (polymarker_job_p -> psj_tool_p -> SetJobMetadata ())
 														{
@@ -302,7 +302,7 @@ ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *
 
 														}		/* if (polymarker_job_p -> psj_tool_p -> SetJobMetadata ()) */
 
-												}		/* if (AddServiceJobToServiceJobSet (jobs_p, (ServiceJob *) job_p)) */
+												}		/* if (AddServiceJobToService (service_p, (ServiceJob *) job_p)) */
 											else
 												{
 													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate add ServiceJob with id \"%s\" to ServiceJobSet", job_id_s);
