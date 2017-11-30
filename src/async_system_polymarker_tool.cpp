@@ -67,21 +67,9 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 	if (SetExecutable (data_p))
 		{
-			aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, program_name_s, PolymarkerServiceJobCompleted);
+			aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, data_p -> psd_task_manager_p, true, program_name_s, PolymarkerServiceJobCompleted);
 
-			if (aspt_task_p)
-				{
-					if (AddAsyncTaskToAsyncTasksManager (data_p -> psd_task_manager_p, aspt_task_p -> std_async_task_p, MF_SHADOW_USE))
-						{
-							alloc_flag = true;
-						}
-					else
-						{
-							FreeSystemAsyncTask (aspt_task_p);
-							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add AsyncTask for AsyncSystemPolymarkerTool to AsyncTasksManager");
-						}
-				}
-			else
+			if (!aspt_task_p)
 				{
 					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate SystemAsyncTask for AsyncSystemPolymarkerTool");
 				}
@@ -141,7 +129,7 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 
 			if (continue_flag)
 				{
-					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, NULL, PolymarkerServiceJobCompleted);
+					aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, data_p -> psd_task_manager_p, true, NULL, PolymarkerServiceJobCompleted);
 
 					if (aspt_task_p)
 						{
