@@ -198,7 +198,11 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 					data_p -> psd_task_manager_p = AllocateAsyncTasksManager (GetServiceName (service_p), CleanupAsyncPolymarkerService, service_p);
 
-					if (! (data_p -> psd_task_manager_p))
+					if (data_p -> psd_task_manager_p)
+						{
+							SetServiceReleaseFunction (data_p -> psd_base_data.sd_service_p, ReleasePolymarkerService);
+						}
+					else
 						{
 							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "AllocateAsyncTasksManager failed");
 							success_flag = false;
@@ -817,7 +821,14 @@ static bool PreRunJobs (PolymarkerServiceData *data_p)
 {
 	if (data_p -> psd_task_manager_p)
 		{
-			PrepareAsyncTasksManager (data_p -> psd_task_manager_p);
+			/*
+			 * Set the initial counter value to 1 which will take the system's call
+			 * to ReleaseService () into account once it has finished with this
+			 * Service. This is to make sure that the Service doesn't delete itself
+			 * after it has finished running all of its jobs asynchronously before
+			 * the system has finished with it and then accessing freed memory.
+			 */
+			PrepareAsyncTasksManager (data_p -> psd_task_manager_p, 1);
 
 			/* If we have asynchronous jobs running then set the "is running" flag for this service */
 			SetServiceRunning (data_p ->  psd_base_data.sd_service_p, true);
@@ -836,3 +847,15 @@ static bool CleanupAsyncPolymarkerService (void *data_p)
 
 	return true;
 }
+
+
+void ReleasePolymarkerService (Service *service_p)
+{
+	PolymarkerServiceData *data_p = (PolymarkerServiceData *) service_p -> se_data_p;
+
+	if (data_p -> psd_task_manager_p)
+		{
+			IncrementAsyncTaskManagerCount (data_p -> psd_task_manager_p);
+		}		/* if (data_p -> psd_task_manager_p) */
+}
+

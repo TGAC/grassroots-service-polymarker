@@ -234,6 +234,10 @@ POLYMARKER_SERVICE_API ServicesArray *GetServices (UserDetails *user_p);
  */
 POLYMARKER_SERVICE_API void ReleaseServices (ServicesArray *services_p);
 
+
+POLYMARKER_SERVICE_LOCAL void ReleasePolymarkerService (Service *service_p);
+
+
 #ifdef __cplusplus
 }
 #endif
