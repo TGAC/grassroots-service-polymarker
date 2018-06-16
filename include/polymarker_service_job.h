@@ -15,6 +15,22 @@
 
 class PolymarkerTool;
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
+
+#ifdef ALLOCATE_POLYMARKER_SERVICE_JOB_TAGS
+	#define POLYMARKER_SERVICE_JOB_PREFIX GRASSROOTS_SERVICE_API
+	#define POLYMARKER_SERVICE_JOB_VAL(x)	= x
+#else
+	#define POLYMARKER_SERVICE_JOB_PREFIX extern
+	#define POLYMARKER_SERVICE_JOB_VAL(x)
+#endif
+
+#endif
+
+
+POLYMARKER_SERVICE_JOB_PREFIX const char *PSJ_TYPE_S POLYMARKER_SERVICE_JOB_VAL ("polymarker_service_job");
+
 
 /**
  * A datatype for storing a ServiceJob

@@ -42,7 +42,7 @@ PolymarkerServiceJob *AllocatePolymarkerServiceJob (Service *service_p, const Po
 					description_s = db_p -> ps_description_s;
 				}
 
-			InitServiceJob (base_service_job_p, service_p, name_s, description_s, NULL, NULL, FreePolymarkerServiceJob, NULL);
+			InitServiceJob (base_service_job_p, service_p, name_s, description_s, NULL, NULL, FreePolymarkerServiceJob, NULL, PSJ_TYPE_S);
 
 			tool_p = CreatePolymarkerTool (poly_job_p, db_p, data_p);
 
