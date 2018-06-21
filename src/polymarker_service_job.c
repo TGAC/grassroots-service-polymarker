@@ -8,6 +8,8 @@
 
 #include <string.h>
 
+
+#define ALLOCATE_POLYMARKER_SERVICE_JOB_TAGS (1)
 #include "polymarker_service_job.h"
 #include "polymarker_tool.hpp"
 
