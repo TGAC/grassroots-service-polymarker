@@ -1,4 +1,4 @@
-﻿Polymarker Service {#polymarker_service}
+﻿Polymarker Service {#polymarker_service_guide}
 ==============
 
 The [Polymarker](http://polymarker.tgac.ac.uk/) Service is an automated bioinformatics pipeline for SNP assay development which increases the probability of generating homoeologue-specific assays for polyploid wheat.
