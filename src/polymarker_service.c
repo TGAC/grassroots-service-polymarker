@@ -81,6 +81,9 @@ static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), S
 static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_data_p, ParameterSet *param_set_p, ParameterGroup *group_p);
 
 
+static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p);
+
+
 
 static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, Service *service_p, PolymarkerServiceData *data_p);
 
@@ -126,6 +129,7 @@ ServicesArray *GetServices (UserDetails *user_p)
 								RunPolymarkerService,
 								IsFileForPolymarkerService,
 								GetPolymarkerServiceParameters,
+								GetPolymarkerServiceParameterTypesForNamedParameters,
 								ReleasePolymarkerServiceParameters,
 								ClosePolymarkerService,
 								CustomisePolymarkerServiceJob,
@@ -385,6 +389,34 @@ static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resourc
 static void ReleasePolymarkerServiceParameters (Service * UNUSED_PARAM (service_p), ParameterSet *params_p)
 {
 	FreeParameterSet (params_p);
+}
+
+static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p)
+{
+	bool success_flag = true;
+
+	if (strcmp (param_name_s, PS_JOB_IDS.npt_name_s) == 0)
+		{
+			*pt_p = PS_JOB_IDS.npt_type;
+		}
+	else if (strcmp (param_name_s, PS_GENE_ID.npt_name_s) == 0)
+		{
+			*pt_p = PS_GENE_ID.npt_type;
+		}
+	else if (strcmp (param_name_s, PS_TARGET_CHROMOSOME.npt_name_s) == 0)
+		{
+			*pt_p = PS_TARGET_CHROMOSOME.npt_type;
+		}
+	else if (strcmp (param_name_s, PS_SEQUENCE.npt_name_s) == 0)
+		{
+			*pt_p = PS_SEQUENCE.npt_type;
+		}
+	else
+		{
+			success_flag = false;
+		}
+
+	return success_flag;
 }
 
 
