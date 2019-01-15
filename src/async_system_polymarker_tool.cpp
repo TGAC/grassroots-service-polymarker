@@ -69,7 +69,11 @@ AsyncSystemPolymarkerTool :: AsyncSystemPolymarkerTool (PolymarkerServiceJob *jo
 		{
 			aspt_task_p = AllocateSystemAsyncTask (& (job_p -> psj_base_job), name_s, data_p -> psd_task_manager_p, true, program_name_s, PolymarkerServiceJobCompleted);
 
-			if (!aspt_task_p)
+			if (aspt_task_p)
+				{
+					alloc_flag = true;
+				}
+			else
 				{
 					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate SystemAsyncTask for AsyncSystemPolymarkerTool");
 				}

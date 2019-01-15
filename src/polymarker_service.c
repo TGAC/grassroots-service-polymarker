@@ -147,7 +147,7 @@ ServicesArray *GetServices (UserDetails *user_p)
 								ClosePolymarkerService,
 								CustomisePolymarkerServiceJob,
 								true,
-								SY_ASYNCHRONOUS_ATTACHED,
+								SY_SYNCHRONOUS,
 								(ServiceData *) data_p,
 								GetPolymarkerServiceMetadata))
 								{
@@ -689,38 +689,55 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 {
 	PolymarkerSequence *db_p = data_p -> psd_index_data_p;
 	size_t i = 0;
+	char *group_s = GetLocalDatabaseGroupName ();
 
 	for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
 		{
-			Parameter *param_p = GetParameterFromParameterSetByName (param_set_p, db_p -> ps_name_s);
+			char *db_s = GetFullyQualifiedDatabaseName (group_s ? group_s : PS_DATABASE_GROUP_NAME_S, db_p -> ps_name_s);
 
-			/* Do we have a matching parameter? */
-			if (param_p)
+			if (db_s)
 				{
-					/* Is the database selected to search against? */
-					if (param_p -> pa_current_value.st_boolean_value)
+					Parameter *param_p = GetParameterFromParameterSetByName (param_set_p, db_s);
+
+					/* Do we have a matching parameter? */
+					if (param_p)
 						{
-							PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (service_p, db_p, data_p);
-
-							if (job_p)
+							/* Is the database selected to search against? */
+							if (param_p -> pa_current_value.st_boolean_value)
 								{
-									if (!AddServiceJobToService (service_p, (ServiceJob *) job_p, false))
+									PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (service_p, db_p, data_p);
+
+									if (job_p)
 										{
-											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_p -> ps_name_s);
-											FreePolymarkerServiceJob (& (job_p -> psj_base_job));
+											if (!AddServiceJobToService (service_p, (ServiceJob *) job_p, false))
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_s);
+													FreePolymarkerServiceJob (& (job_p -> psj_base_job));
+												}
 										}
-								}
-							else
-								{
-									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create ServiceJob for \"%s\"", db_p -> ps_name_s);
-								}
+									else
+										{
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create ServiceJob for \"%s\"", db_s);
+										}
 
-						}		/* if (param_p -> pa_current_value.st_boolean_value) */
+								}		/* if (param_p -> pa_current_value.st_boolean_value) */
 
-				}		/* if (param_p) */
+						}		/* if (param_p) */
+
+					FreeCopiedString (db_s);
+				}		/* if (db_s) */
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "GetFullyQualifiedDatabaseName failed for \"%s\" and \"%s\"", group_s ? group_s : PS_DATABASE_GROUP_NAME_S, db_p -> ps_name_s);
+
+				}
 
 		}
 
+	if (group_s)
+		{
+			FreeCopiedString (group_s);
+		}
 }
 
 
