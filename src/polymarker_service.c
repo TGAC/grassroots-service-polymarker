@@ -50,6 +50,8 @@ static const char * const PS_SEQUENCE_NAME_S = "sequence";
 static const char * const PS_FASTA_FILENAME_S = "fasta";
 static const char * const PS_DATABASE_GROUP_NAME_S = "Available contigs";
 
+static const char * const S_DB_SEP_S = " -> ";
+
 /*
  * STATIC PROTOTYPES
  */
@@ -83,6 +85,8 @@ static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_
 
 static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p);
 
+static bool GetDatabaseParameterTypeForNamedParameter (PolymarkerServiceData *data_p, const char *param_name_s, ParameterType *pt_p);
+
 
 
 static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, Service *service_p, PolymarkerServiceData *data_p);
@@ -91,6 +95,15 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 
 
 static char *CreateGroupName (const char *server_s);
+
+static char *GetLocalDatabaseGroupName (void);
+
+
+static char *GetFullyQualifiedDatabaseName (const char *group_s, const char *db_s);
+
+static const char *GetLocalDatabaseName (const char *fully_qualified_db_s);
+
+
 
 static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *param_set_p);
 
@@ -411,7 +424,7 @@ static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service
 		{
 			*pt_p = PS_SEQUENCE.npt_type;
 		}
-	else
+	else if (!GetDatabaseParameterTypeForNamedParameter ((PolymarkerServiceData *) (service_p -> se_data_p), param_name_s, pt_p))
 		{
 			success_flag = false;
 		}
@@ -672,59 +685,6 @@ static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), S
 }
 
 
-
-
-
-/*
- * The list of databases that can be searched
- */
-static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_data_p, ParameterSet *param_set_p, ParameterGroup *group_p)
-{
-	Parameter *param_p = NULL;
-
-	if (service_data_p -> psd_index_data_size)
-		{
-			SharedType def;
-			PolymarkerSequence *ps_p = service_data_p -> psd_index_data_p;
-
-
-			/* default to grassroots */
-			def.st_string_value_s = (char *) (ps_p -> ps_name_s);
-
-			param_p = EasyCreateAndAddParameterToParameterSet (& (service_data_p -> psd_base_data), param_set_p, group_p, PS_CONTIG_FILENAME.npt_type, PS_CONTIG_FILENAME.npt_name_s, "Available Contigs", "The Contigs to use", def, PL_ALL);
-
-			if (param_p)
-				{
-					size_t i;
-
-					bool success_flag = true;
-
-					for (i = 0; i < service_data_p -> psd_index_data_size; ++ i, ++ ps_p)
-						{
-							def.st_string_value_s = (char *) (ps_p -> ps_name_s);
-
-							if (!CreateAndAddParameterOptionToParameter (param_p, def, NULL))
-								{
-									i = service_data_p -> psd_index_data_size;
-									success_flag = false;
-								}
-						}
-
-					if (!success_flag)
-						{
-							FreeParameter (param_p);
-							param_p = NULL;
-						}
-
-
-				}		/* if (param_p) */
-
-		}		/* if (service_data_p -> psd_index_data_size) */
-
-	return param_p;
-}
-
-
 static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p, Service *service_p, PolymarkerServiceData *data_p)
 {
 	PolymarkerSequence *db_p = data_p -> psd_index_data_p;
@@ -776,42 +736,33 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 	if (data_p -> psd_index_data_size > 0)
 		{
 			ParameterGroup *group_p = NULL;
-			char *group_s = NULL;
-			const json_t *provider_p = NULL;
-			const char *group_to_use_s = NULL;
 			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
 			SharedType def;
 			size_t i = 0;
+			char *group_s = GetLocalDatabaseGroupName ();
 
-			provider_p = GetGlobalConfigValue (SERVER_PROVIDER_S);
-
-			if (provider_p)
-				{
-					const char *provider_s = GetProviderName (provider_p);
-
-					if (provider_s)
-						{
-							group_s = CreateGroupName (provider_s);
-						}
-				}
-
-			group_to_use_s = group_s ? group_s : PS_DATABASE_GROUP_NAME_S;
-
-			group_p = CreateAndAddParameterGroupToParameterSet (group_to_use_s, NULL, false, & (data_p -> psd_base_data), param_set_p);
+			group_p = CreateAndAddParameterGroupToParameterSet (group_s, NULL, false, & (data_p -> psd_base_data), param_set_p);
 
 			InitSharedType (&def);
 
 			for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
 				{
-					def.st_boolean_value = db_p -> ps_active_flag;
+					char *db_s = GetFullyQualifiedDatabaseName (group_s ? group_s : PS_DATABASE_GROUP_NAME_S, db_p -> ps_name_s);
 
-					if (EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, PT_BOOLEAN, db_p -> ps_name_s, db_p -> ps_name_s, db_p -> ps_description_s, def, PL_ALL))
+					if (db_s)
 						{
-							++ num_added_databases;
-						}
-					else
-						{
-							PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to add database \"%s\"", db_p -> ps_name_s);
+							def.st_boolean_value = db_p -> ps_active_flag;
+
+							if (EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, PT_BOOLEAN, db_s, db_p -> ps_name_s, db_p -> ps_description_s, def, PL_ALL))
+								{
+									++ num_added_databases;
+								}
+							else
+								{
+									PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to add database \"%s\"", db_p -> ps_name_s);
+								}
+
+							FreeCopiedString (db_s);
 						}
 
 				}
@@ -828,6 +779,42 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 }
 
 
+
+static bool GetDatabaseParameterTypeForNamedParameter (PolymarkerServiceData *data_p, const char *param_name_s, ParameterType *pt_p)
+{
+	bool success_flag = false;
+
+	if (data_p -> psd_index_data_size > 0)
+		{
+			char *group_s = GetLocalDatabaseGroupName ();
+			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
+			size_t i = data_p -> psd_index_data_size;
+
+			while ((i > 0) && (!success_flag))
+				{
+					char *db_s = GetFullyQualifiedDatabaseName (group_s ? group_s : PS_DATABASE_GROUP_NAME_S, db_p -> ps_name_s);
+
+					if (strcmp (param_name_s, db_s) == 0)
+						{
+							*pt_p = PT_BOOLEAN;
+							success_flag = true;
+						}
+					else
+						{
+							++ db_p;
+							-- i;
+						}
+				}
+
+			if (group_s)
+				{
+					FreeCopiedString (group_s);
+				}
+
+		}		/* if (num_group_params) */
+
+	return success_flag;
+}
 
 
 static char *CreateGroupName (const char *server_s)
@@ -847,6 +834,53 @@ static char *CreateGroupName (const char *server_s)
 
 	return group_name_s;
 }
+
+
+static char *GetLocalDatabaseGroupName (void)
+{
+	char *group_s = NULL;
+	const json_t *provider_p = GetGlobalConfigValue (SERVER_PROVIDER_S);
+
+	if (provider_p)
+		{
+			const char *provider_s = GetProviderName (provider_p);
+
+			if (provider_s)
+				{
+					group_s = CreateGroupName (provider_s);
+				}
+		}		/* if (provider_p) */
+
+	return group_s;
+}
+
+
+static char *GetFullyQualifiedDatabaseName (const char *group_s, const char *db_s)
+{
+	char *fq_db_s = ConcatenateVarargsStrings (group_s ? group_s : PS_DATABASE_GROUP_NAME_S, S_DB_SEP_S, db_s, NULL);
+
+	return fq_db_s;
+}
+
+
+static const char *GetLocalDatabaseName (const char *fully_qualified_db_s)
+{
+	const char *db_s = NULL;
+	const char *sep_p = strstr (fully_qualified_db_s, S_DB_SEP_S);
+
+	if (sep_p)
+		{
+			const size_t l = strlen (S_DB_SEP_S);
+
+			if (strlen (sep_p) >= l)
+				{
+					db_s += l;
+				}
+		}
+
+	return db_s;
+}
+
 
 
 static bool PreRunJobs (PolymarkerServiceData *data_p)

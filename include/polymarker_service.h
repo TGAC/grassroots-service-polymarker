@@ -148,7 +148,7 @@ typedef struct PolymarkerServiceData
 	const char *psd_executable_s;
 
 	/**
-	 * An array of available PolymarkerSequence objects that the PolymarkrService
+	 * An array of available PolymarkerSequence objects that the PolymarkerService
 	 * can run against.
 	 */
 	PolymarkerSequence *psd_index_data_p;
