@@ -362,7 +362,7 @@ static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resourc
 			PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
 			Parameter *param_p = NULL;
 			SharedType def;
-			ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet (GetSequenceParametersGroupName (), NULL, true, & (data_p -> psd_base_data), param_set_p);
+			ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet (GetSequenceParametersGroupName (), true, & (data_p -> psd_base_data), param_set_p);
 
 
 			if (!group_p)
@@ -758,7 +758,7 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 			size_t i = 0;
 			char *group_s = GetLocalDatabaseGroupName ();
 
-			group_p = CreateAndAddParameterGroupToParameterSet (group_s, NULL, false, & (data_p -> psd_base_data), param_set_p);
+			group_p = CreateAndAddParameterGroupToParameterSet (group_s, false, & (data_p -> psd_base_data), param_set_p);
 
 			InitSharedType (&def);
 
