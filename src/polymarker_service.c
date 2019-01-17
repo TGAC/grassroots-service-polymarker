@@ -213,6 +213,8 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 				{
 					Service *service_p = data_p -> psd_base_data.sd_service_p;
 
+					service_p -> se_synchronous = SY_ASYNCHRONOUS_ATTACHED;
+
 					data_p -> psd_task_manager_p = AllocateAsyncTasksManager (GetServiceName (service_p), CleanupAsyncPolymarkerService, service_p);
 
 					if (data_p -> psd_task_manager_p)
