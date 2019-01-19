@@ -83,7 +83,7 @@ POLYMARKER_SERVICE_LOCAL Primer3Prefs *AllocatePrimer3Prefs (const PolymarkerSer
 POLYMARKER_SERVICE_LOCAL void FreePrimer3Prefs (Primer3Prefs *prefs_p);
 
 
-POLYMARKER_SERVICE_LOCAL bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *working_dir_s, const char *job_id_s));
+POLYMARKER_SERVICE_LOCAL bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *working_dir_s, const char *job_id_s);
 
 
 POLYMARKER_SERVICE_LOCAL bool AddPrimer3PrefsParameters (ParameterSet *params_p, Primer3Prefs *prefs_p);
