@@ -147,6 +147,18 @@ typedef struct PolymarkerServiceData
 	 */
 	const char *psd_executable_s;
 
+
+	/**
+	 * Polymarker can use either blast or exonerate as its aligner
+	 */
+	const char *psd_aligner_s;
+
+
+	/**
+	 * File with preferences to be sent to primer3.
+	 */
+	const char *psd_primer_config_file_s;
+
 	/**
 	 * An array of available PolymarkerSequence objects that the PolymarkerService
 	 * can run against.
@@ -207,6 +219,11 @@ POLYMARKER_PREFIX const char *PS_TOOL_SYSTEM_S POLYMARKER_VAL ("system");
 /** The constant string for denoting that Polymarker will use the web-based tool. */
 POLYMARKER_PREFIX const char *PS_TOOL_WEB_S POLYMARKER_VAL ("web");
 
+/** The constant string for denoting that Polymarker will use the blast aligner. */
+POLYMARKER_PREFIX const char *PS_ALIGNER_BLAST_S POLYMARKER_VAL ("blast");
+
+/** The constant string for denoting that Polymarker will use the exonerate aligner. */
+POLYMARKER_PREFIX const char *PS_ALIGNER_EXONERATE_S POLYMARKER_VAL ("exonerate");
 
 
 #ifdef __cplusplus

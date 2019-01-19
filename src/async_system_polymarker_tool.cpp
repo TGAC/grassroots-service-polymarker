@@ -215,12 +215,33 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 						{
 							if (CreateMarkerListFile (markers_filename_s, param_set_p))
 								{
-									aspt_command_line_args_s = ConcatenateVarargsStrings (aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", pt_job_dir_s, NULL);
+									ByteBuffer *buffer_p = AllocateByteBuffer (1024);
 
-									if (aspt_command_line_args_s)
+									if (buffer_p)
 										{
-											success_flag = true;
-										}
+											bool made_exe_flag = false;
+
+											if (AppendStringsToByteBuffer (buffer_p, aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", pt_job_dir_s, " --aligner ", pt_service_data_p -> psd_aligner_s, NULL))
+												{
+													made_exe_flag = true;
+
+													if (pt_service_data_p -> psd_primer_config_file_s)
+														{
+															made_exe_flag = AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", pt_service_data_p -> psd_primer_config_file_s, NULL);
+														}
+												}
+
+											if (made_exe_flag)
+												{
+													aspt_command_line_args_s = DetachByteBufferData (buffer_p);
+													success_flag = true;
+												}
+											else
+												{
+													FreeByteBuffer (buffer_p);
+												}
+
+										}		/* if (buffer_p) */
 
 								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
 

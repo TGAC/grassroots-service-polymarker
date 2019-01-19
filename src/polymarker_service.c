@@ -80,9 +80,6 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p);
 static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), ServiceJob *job_p);
 
 
-static Parameter *SetUpDatabasesParameter (const PolymarkerServiceData *service_data_p, ParameterSet *param_set_p, ParameterGroup *group_p);
-
-
 static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p);
 
 static bool GetDatabaseParameterTypeForNamedParameter (PolymarkerServiceData *data_p, const char *param_name_s, ParameterType *pt_p);
@@ -193,8 +190,10 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 	if (polymarker_config_p)
 		{
 			json_t *index_files_p;
-			const char *config_value_s = GetJSONString (polymarker_config_p, PS_TOOL_S);
 			const char * const WORKING_DIRECTORY_KEY_S = "working_directory";
+			const char * const ALIGNER_KEY_S = "aligner";
+			const char *config_value_s = GetJSONString (polymarker_config_p, PS_TOOL_S);
+
 
 			if (config_value_s)
 				{
@@ -238,6 +237,30 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Polymarker Service requires a working directory specified by the %s", WORKING_DIRECTORY_KEY_S);
 					success_flag = false;
 				}
+
+			/*
+			 * Set the aligner to use
+			 */
+			data_p -> psd_aligner_s = PS_ALIGNER_EXONERATE_S;
+			config_value_s = GetJSONString (polymarker_config_p, ALIGNER_KEY_S);
+			if (config_value_s)
+				{
+					if (strcmp (config_value_s, PS_ALIGNER_BLAST_S) == 0)
+						{
+							data_p -> psd_aligner_s = PS_ALIGNER_BLAST_S;
+						}
+					else if (strcmp (config_value_s, PS_ALIGNER_EXONERATE_S) != 0)
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Unknown aligner \"%s\", using exonerate", config_value_s);
+						}
+				}
+
+
+			/*
+			 * Primer3 config
+			 */
+			data_p -> psd_primer_config_file_s = GetJSONString (polymarker_config_p, "primer_config");
+
 
 			index_files_p = json_object_get (polymarker_config_p, "index_files");
 
