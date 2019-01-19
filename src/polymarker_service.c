@@ -195,6 +195,9 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 			const char *config_value_s = GetJSONString (polymarker_config_p, PS_TOOL_S);
 
 
+			/*
+			 * polymarker tool
+			 */
 			if (config_value_s)
 				{
 					if (strcmp (config_value_s, PS_TOOL_WEB_S) == 0)
@@ -206,7 +209,6 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 							data_p -> psd_tool_type = PTT_SYSTEM;
 						}
 				}
-
 
 			if (data_p -> psd_tool_type == PTT_SYSTEM)
 				{
@@ -262,6 +264,9 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 			data_p -> psd_primer_config_file_s = GetJSONString (polymarker_config_p, "primer_config");
 
 
+			/*
+			 * index files
+			 */
 			index_files_p = json_object_get (polymarker_config_p, "index_files");
 
 			if (index_files_p)
@@ -286,7 +291,6 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 
 									success_flag = true;
 								}
-
 						}
 					else
 						{
