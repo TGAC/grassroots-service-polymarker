@@ -67,7 +67,7 @@ typedef struct Primer3Prefs
 
 	bool pp_explain_flag;
 
-	char *pp_thermodynamic_parameters_path_s;
+	const char *pp_thermodynamic_parameters_path_s;
 } Primer3Prefs;
 
 
@@ -86,7 +86,7 @@ POLYMARKER_SERVICE_LOCAL void FreePrimer3Prefs (Primer3Prefs *prefs_p);
 POLYMARKER_SERVICE_LOCAL bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *working_dir_s, const char *job_id_s);
 
 
-POLYMARKER_SERVICE_LOCAL bool AddPrimer3PrefsParameters (ParameterSet *params_p, Primer3Prefs *prefs_p);
+POLYMARKER_SERVICE_LOCAL bool AddPrimer3PrefsParameters (ParameterSet *params_p, PolymarkerServiceData *data_p);
 
 
 POLYMARKER_SERVICE_LOCAL bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p);

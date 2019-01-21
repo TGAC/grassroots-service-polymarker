@@ -225,9 +225,9 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 												{
 													made_exe_flag = true;
 
-													if (pt_service_data_p -> psd_primer_config_file_s)
+													if (pt_service_data_p -> psd_default_primer_config_file_s)
 														{
-															made_exe_flag = AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", pt_service_data_p -> psd_primer_config_file_s, NULL);
+															made_exe_flag = AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", pt_service_data_p -> psd_default_primer_config_file_s, NULL);
 														}
 												}
 

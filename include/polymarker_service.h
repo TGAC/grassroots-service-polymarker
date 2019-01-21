@@ -157,7 +157,12 @@ typedef struct PolymarkerServiceData
 	/**
 	 * File with preferences to be sent to primer3.
 	 */
-	const char *psd_primer_config_file_s;
+	const char *psd_default_primer_config_file_s;
+
+	/**
+	 * Path to Primer3 config files
+	 */
+	const char *psd_thermodynamic_parameters_path_s;
 
 	/**
 	 * An array of available PolymarkerSequence objects that the PolymarkerService

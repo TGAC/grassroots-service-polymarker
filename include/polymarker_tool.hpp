@@ -31,6 +31,7 @@
 #include "parameter_set.h"
 #include "service_job.h"
 #include "polymarker_service_job.h"
+#include "primer3_prefs.h"
 
 
 class PolymarkerFormatter;
@@ -172,6 +173,9 @@ protected:
 	 * The local directory where the results and logging data will be stored.
 	 */
 	char *pt_job_dir_s;
+
+
+	Primer3Prefs *pt_primer_prefs_p;
 
 	/**
 	 * The key used for specifying the PolymarkerTool's job directory within

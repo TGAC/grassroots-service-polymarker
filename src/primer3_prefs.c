@@ -28,6 +28,7 @@
 #include "streams.h"
 #include "io_utils.h"
 #include "string_utils.h"
+#include "math_utils.h"
 
 
 static bool WriteKeyValuePairForString (const char *key_s, const char *value_s, FILE *out_f);
@@ -37,39 +38,54 @@ static bool WriteKeyValuePairForUnsignedInt (const char *key_s, const uint32 val
 static char *GetProductSizeRangeAsString (const uint32 min_value, const uint32 max_value);
 
 
+static const uint32 S_DEFAULT_PROD_SIZE_MIN = 100;
+static const uint32 S_DEFAULT_PROD_SIZE_MAX = 300;
+static const uint32 S_DEFAULT_MAX_SIZE = 27;
+static const bool S_DEFAULT_LIB_AMBIGUITY_CODES_CONSENSUS = false;
+static const bool S_DEFAULT_LIBERAL_BASE = false;
+static const uint32 S_DEFAULT_NUM_RETURN = 5;
+static const bool S_DEFAULT_EXPLAIN = false;
+
 
 static NamedParameterType S_PROD_SIZE_MIN = { "Product size range min", PT_UNSIGNED_INT };
 static NamedParameterType S_PROD_SIZE_MAX = { "Product size range max", PT_UNSIGNED_INT };
 static NamedParameterType S_MAX_SIZE = { "Primer maximum size", PT_UNSIGNED_INT };
 static NamedParameterType S_LIB_AMBIGUITY_CODES_CONSENSUS = { "Product size range min", PT_BOOLEAN };
 static NamedParameterType S_LIBERAL_BASE = { "Product size range max", PT_BOOLEAN };
-static NamedParameterType S_PP_NUM_RETURN = { "Primer maximum size", PT_UNSIGNED_INT };
+static NamedParameterType S_NUM_RETURN = { "Max number of hits", PT_UNSIGNED_INT };
 static NamedParameterType S_EXPLAIN_FLAG = { "Product size range min", PT_BOOLEAN };
 
 
 Primer3Prefs *AllocatePrimer3Prefs (const PolymarkerServiceData *data_p)
 {
-	Primer3Prefs *prefs_p = NULL;
+	Primer3Prefs *prefs_p = (Primer3Prefs *) AllocMemory (sizeof (Primer3Prefs));
 
-	return NULL;
+	if (prefs_p)
+		{
+			prefs_p -> pp_product_size_range_min = S_DEFAULT_PROD_SIZE_MIN;
+			prefs_p -> pp_product_size_range_max = S_DEFAULT_PROD_SIZE_MAX;
+			prefs_p -> pp_max_size = S_DEFAULT_MAX_SIZE;
+			prefs_p -> pp_lib_ambiguity_codes_consensus = S_DEFAULT_LIB_AMBIGUITY_CODES_CONSENSUS;
+			prefs_p -> pp_liberal_base = S_DEFAULT_LIBERAL_BASE;
+			prefs_p -> pp_num_return = S_DEFAULT_NUM_RETURN;
+			prefs_p -> pp_explain_flag = S_DEFAULT_EXPLAIN;
+			prefs_p -> pp_thermodynamic_parameters_path_s = NULL;
+		}
+
+	return prefs_p;
 }
 
 
 void FreePrimer3Prefs (Primer3Prefs *prefs_p)
 {
-	if (prefs_p -> pp_thermodynamic_parameters_path_s)
-		{
-			FreeCopiedString (prefs_p -> pp_thermodynamic_parameters_path_s);
-		}
-
 	FreeMemory (prefs_p);
 }
 
 
-bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *working_dir_s, const char *job_id_s, const char *primer_config_path_s)
+bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *path_s)
 {
 	bool success_flag = false;
-	char *filename_s = MakeFilename (working_dir_s, job_id_s);
+	char *filename_s = MakeFilename (path_s, "primer3.prefs");
 
 	if (filename_s)
 		{
@@ -102,7 +118,7 @@ bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *working_dir_s, const c
 																{
 																	if (WriteKeyValuePairForUnsignedInt ("primer_explain_flag", prefs_p -> pp_explain_flag ? 1 : 0, out_f))
 																		{
-																			if (WriteKeyValuePairForString ("primer_max_size", primer_config_path_s, out_f))
+																			if (WriteKeyValuePairForString ("primer_thermodynamic_parameters_path", prefs_p -> pp_thermodynamic_parameters_path_s, out_f))
 																				{
 																					success_flag = true;
 																				}		/* if (WriteKeyValuePairForString ("primer_max_size", primer_config_path_s, out_f)) */
@@ -137,9 +153,49 @@ bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *working_dir_s, const c
 }
 
 
-bool AddPrimer3PrefsParameters (ParameterSet *params_p, Primer3Prefs *prefs_p)
+bool AddPrimer3PrefsParameters (ParameterSet *params_p, PolymarkerServiceData *data_p)
 {
 	bool success_flag = false;
+	Parameter *param_p = NULL;
+	SharedType def;
+	ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet ("Primer3 Parameters", false, & (data_p -> psd_base_data), params_p);
+
+	def.st_ulong_value = S_DEFAULT_PROD_SIZE_MIN;
+
+	if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_PROD_SIZE_MIN.npt_type, S_PROD_SIZE_MIN.npt_name_s, "Product size minimum", "The minimum value of the PCR range", def, PL_ADVANCED)) != NULL)
+		{
+			def.st_ulong_value = S_DEFAULT_PROD_SIZE_MAX;
+
+			if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_PROD_SIZE_MAX.npt_type, S_PROD_SIZE_MAX.npt_name_s, "Product size maximum", "The maximum value of the PCR range", def, PL_ADVANCED)) != NULL)
+				{
+					def.st_ulong_value = S_DEFAULT_MAX_SIZE;
+
+					if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_MAX_SIZE.npt_type, S_MAX_SIZE.npt_name_s, "Maximum primer size", "Maximum acceptable length (in bases) of a primer. Currently this parameter cannot be larger than 35.", def, PL_ADVANCED)) != NULL)
+						{
+							def.st_boolean_value = S_DEFAULT_LIB_AMBIGUITY_CODES_CONSENSUS;
+
+							if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_type, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, "Ambiguity codes consensus", "If true, treat ambiguity codes as if they were consensus codes when matching oligos to mispriming or mishyb libraries", def, PL_ADVANCED)) != NULL)
+								{
+									def.st_boolean_value = S_DEFAULT_LIBERAL_BASE;
+
+									if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_LIBERAL_BASE.npt_type, S_LIBERAL_BASE.npt_name_s, "Liberal base", "This parameter provides a quick-and-dirty way to get primer3 to accept IUB / IUPAC codes for ambiguous bases (i.e. by changing all unrecognized bases to N). If you wish to include an ambiguous base in an oligo, you must set this to true", def, PL_ADVANCED)) != NULL)
+										{
+											def.st_ulong_value = S_DEFAULT_NUM_RETURN;
+
+											if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_NUM_RETURN.npt_type, S_NUM_RETURN.npt_name_s, "Number of hits", "The maximum number of primer (pairs) to return.", def, PL_ADVANCED)) != NULL)
+												{
+													def.st_boolean_value = S_DEFAULT_EXPLAIN;
+
+													if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_EXPLAIN_FLAG.npt_type, S_EXPLAIN_FLAG.npt_name_s, "Explain", "These output tags are intended to provide information on the number of oligos and primer pairs that primer3 examined and counts of the number discarded for various reasons", def, PL_ADVANCED)) != NULL)
+														{
+															success_flag = true;
+														}
+												}
+										}
+								}
+						}
+				}
+		}
 
 	return success_flag;
 }
@@ -169,9 +225,9 @@ bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p,
 		{
 			*pt_p = S_LIBERAL_BASE.npt_type;
 		}
-	else if (strcmp (param_name_s, S_PP_NUM_RETURN.npt_name_s) == 0)
+	else if (strcmp (param_name_s, S_NUM_RETURN.npt_name_s) == 0)
 		{
-			*pt_p = S_PP_NUM_RETURN.npt_type;
+			*pt_p = S_NUM_RETURN.npt_type;
 		}
 	else if (strcmp (param_name_s, S_EXPLAIN_FLAG.npt_name_s) == 0)
 		{
@@ -189,6 +245,52 @@ bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p,
 bool ParsePrimer3PrefsParameters (ParameterSet *params_p, Primer3Prefs *prefs_p)
 {
 	bool success_flag = false;
+	SharedType value;
+
+	InitSharedType (&value);
+
+	if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MIN.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_product_size_range_min = value.st_ulong_value;
+
+			if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MAX.npt_name_s, &value, true))
+				{
+					prefs_p -> pp_product_size_range_max = value.st_ulong_value;
+
+					if (GetParameterValueFromParameterSet (params_p, S_MAX_SIZE.npt_name_s, &value, true))
+						{
+							prefs_p -> pp_max_size = value.st_ulong_value;
+
+							if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true))
+								{
+									prefs_p -> pp_lib_ambiguity_codes_consensus = value.st_boolean_value;
+
+									if (GetParameterValueFromParameterSet (params_p, S_LIBERAL_BASE.npt_name_s, &value, true))
+										{
+											prefs_p -> pp_liberal_base = value.st_boolean_value;
+
+											if (GetParameterValueFromParameterSet (params_p, S_NUM_RETURN.npt_name_s, &value, true))
+												{
+													prefs_p -> pp_num_return = value.st_boolean_value;
+
+													if (GetParameterValueFromParameterSet (params_p, S_EXPLAIN_FLAG.npt_name_s, &value, true))
+														{
+															prefs_p -> pp_explain_flag = value.st_boolean_value;
+
+															success_flag = true;
+														}		/* if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value)) */
+
+												}		/* if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true)) */
+
+										}		/* if (GetParameterValueFromParameterSet (params_p, S_LIBERAL_BASE.npt_name_s, &value, true)) */
+
+								}		/* if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true)) */
+
+						}		/* if (GetParameterValueFromParameterSet (params_p, S_MAX_SIZE.npt_name_s, &value, true)) */
+
+				}		/* if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MAX.npt_name_s, &value, true)) */
+
+		}		/* if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MIN.npt_name_s, &value, true)) */
 
 	return success_flag;
 }
@@ -197,11 +299,11 @@ bool ParsePrimer3PrefsParameters (ParameterSet *params_p, Primer3Prefs *prefs_p)
 static char *GetProductSizeRangeAsString (const uint32 min_value, const uint32 max_value)
 {
 	char *range_s = NULL;
-	char *min_s = GetUnsignedIntAsString (min_value);
+	char *min_s = ConvertUnsignedIntegerToString (min_value);
 
 	if (min_s)
 		{
-			char *max_s = GetUnsignedIntAsString (max_value);
+			char *max_s = ConvertUnsignedIntegerToString (max_value);
 
 			if (max_s)
 				{
