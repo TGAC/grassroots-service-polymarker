@@ -263,7 +263,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 			 * Primer3 config
 			 */
 			data_p -> psd_default_primer_config_file_s = GetJSONString (polymarker_config_p, "default_primer_config_file");
-			data_p -> psd_primer_config_path_s = GetJSONString (polymarker_config_p, "primer_config_files");
+			data_p -> psd_thermodynamic_parameters_path_s = GetJSONString (polymarker_config_p, "primer_config_files");
 
 
 			/*

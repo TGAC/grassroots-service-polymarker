@@ -53,7 +53,7 @@ static NamedParameterType S_MAX_SIZE = { "Primer maximum size", PT_UNSIGNED_INT 
 static NamedParameterType S_LIB_AMBIGUITY_CODES_CONSENSUS = { "Product size range min", PT_BOOLEAN };
 static NamedParameterType S_LIBERAL_BASE = { "Product size range max", PT_BOOLEAN };
 static NamedParameterType S_NUM_RETURN = { "Max number of hits", PT_UNSIGNED_INT };
-static NamedParameterType S_EXPLAIN_FLAG = { "Product size range min", PT_BOOLEAN };
+static NamedParameterType S_EXPLAIN_FLAG = { "Explain results", PT_BOOLEAN };
 
 
 Primer3Prefs *AllocatePrimer3Prefs (const PolymarkerServiceData *data_p)
@@ -69,7 +69,7 @@ Primer3Prefs *AllocatePrimer3Prefs (const PolymarkerServiceData *data_p)
 			prefs_p -> pp_liberal_base = S_DEFAULT_LIBERAL_BASE;
 			prefs_p -> pp_num_return = S_DEFAULT_NUM_RETURN;
 			prefs_p -> pp_explain_flag = S_DEFAULT_EXPLAIN;
-			prefs_p -> pp_thermodynamic_parameters_path_s = NULL;
+			prefs_p -> pp_thermodynamic_parameters_path_s = data_p -> psd_thermodynamic_parameters_path_s;
 		}
 
 	return prefs_p;
@@ -242,7 +242,41 @@ bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p,
 }
 
 
-bool ParsePrimer3PrefsParameters (ParameterSet *params_p, Primer3Prefs *prefs_p)
+bool WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s, const PolymarkerServiceData *data_p)
+{
+	bool success_flag = false;
+	Primer3Prefs *prefs_p = AllocatePrimer3Prefs (data_p);
+
+	if (prefs_p)
+		{
+			if (ParsePrimer3PrefsParameters (params_p, prefs_p))
+				{
+					if (SavePrimer3Prefs (prefs_p, prefs_path_s))
+						{
+							success_flag = true;
+						}
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "SavePrimer3Prefs to \"%s\" failed", prefs_path_s);
+						}
+				}
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "ParsePrimer3PrefsParameters failed");
+				}
+
+			FreePrimer3Prefs (prefs_p);
+		}		/* if (prefs_p) */
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate Primer3Prefs");
+		}
+
+	return success_flag;
+}
+
+
+bool ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *prefs_p)
 {
 	bool success_flag = false;
 	SharedType value;

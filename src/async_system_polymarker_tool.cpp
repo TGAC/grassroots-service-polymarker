@@ -223,11 +223,20 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 
 											if (AppendStringsToByteBuffer (buffer_p, aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", pt_job_dir_s, " --aligner ", pt_service_data_p -> psd_aligner_s, NULL))
 												{
-													made_exe_flag = true;
+													made_exe_flag = false;
 
-													if (pt_service_data_p -> psd_default_primer_config_file_s)
+													if (WritePrimer3Config (param_set_p, pt_job_dir_s, pt_service_data_p))
 														{
 															made_exe_flag = AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", pt_service_data_p -> psd_default_primer_config_file_s, NULL);
+
+														}
+													else if (pt_service_data_p -> psd_default_primer_config_file_s)
+														{
+															made_exe_flag = AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", pt_service_data_p -> psd_default_primer_config_file_s, NULL);
+														}
+													else
+														{
+															made_exe_flag = true;
 														}
 												}
 
