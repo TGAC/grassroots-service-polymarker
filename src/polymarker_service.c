@@ -262,8 +262,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 			/*
 			 * Primer3 config
 			 */
-			data_p -> psd_default_primer_config_file_s = GetJSONString (polymarker_config_p, "default_primer_config_file");
-			data_p -> psd_thermodynamic_parameters_path_s = GetJSONString (polymarker_config_p, "primer_config_files");
+			data_p -> psd_thermodynamic_parameters_path_s = GetJSONString (polymarker_config_p, "thermodynamic_parameters_path");
 
 
 			/*
@@ -442,25 +441,28 @@ static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service
 {
 	bool success_flag = true;
 
-	if (strcmp (param_name_s, PS_JOB_IDS.npt_name_s) == 0)
+	if (!GetPrimer3PrefsParameterTypesForNamedParameters (service_p, param_name_s, pt_p))
 		{
-			*pt_p = PS_JOB_IDS.npt_type;
-		}
-	else if (strcmp (param_name_s, PS_GENE_ID.npt_name_s) == 0)
-		{
-			*pt_p = PS_GENE_ID.npt_type;
-		}
-	else if (strcmp (param_name_s, PS_TARGET_CHROMOSOME.npt_name_s) == 0)
-		{
-			*pt_p = PS_TARGET_CHROMOSOME.npt_type;
-		}
-	else if (strcmp (param_name_s, PS_SEQUENCE.npt_name_s) == 0)
-		{
-			*pt_p = PS_SEQUENCE.npt_type;
-		}
-	else if (!GetDatabaseParameterTypeForNamedParameter ((PolymarkerServiceData *) (service_p -> se_data_p), param_name_s, pt_p))
-		{
-			success_flag = false;
+			if (strcmp (param_name_s, PS_JOB_IDS.npt_name_s) == 0)
+				{
+					*pt_p = PS_JOB_IDS.npt_type;
+				}
+			else if (strcmp (param_name_s, PS_GENE_ID.npt_name_s) == 0)
+				{
+					*pt_p = PS_GENE_ID.npt_type;
+				}
+			else if (strcmp (param_name_s, PS_TARGET_CHROMOSOME.npt_name_s) == 0)
+				{
+					*pt_p = PS_TARGET_CHROMOSOME.npt_type;
+				}
+			else if (strcmp (param_name_s, PS_SEQUENCE.npt_name_s) == 0)
+				{
+					*pt_p = PS_SEQUENCE.npt_type;
+				}
+			else if (!GetDatabaseParameterTypeForNamedParameter ((PolymarkerServiceData *) (service_p -> se_data_p), param_name_s, pt_p))
+				{
+					success_flag = false;
+				}
 		}
 
 	return success_flag;

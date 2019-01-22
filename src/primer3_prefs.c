@@ -50,8 +50,8 @@ static const bool S_DEFAULT_EXPLAIN = false;
 static NamedParameterType S_PROD_SIZE_MIN = { "Product size range min", PT_UNSIGNED_INT };
 static NamedParameterType S_PROD_SIZE_MAX = { "Product size range max", PT_UNSIGNED_INT };
 static NamedParameterType S_MAX_SIZE = { "Primer maximum size", PT_UNSIGNED_INT };
-static NamedParameterType S_LIB_AMBIGUITY_CODES_CONSENSUS = { "Product size range min", PT_BOOLEAN };
-static NamedParameterType S_LIBERAL_BASE = { "Product size range max", PT_BOOLEAN };
+static NamedParameterType S_LIB_AMBIGUITY_CODES_CONSENSUS = { "Lib ambiguity code consensus", PT_BOOLEAN };
+static NamedParameterType S_LIBERAL_BASE = { "Liberal base", PT_BOOLEAN };
 static NamedParameterType S_NUM_RETURN = { "Max number of hits", PT_UNSIGNED_INT };
 static NamedParameterType S_EXPLAIN_FLAG = { "Explain results", PT_BOOLEAN };
 
@@ -82,10 +82,10 @@ void FreePrimer3Prefs (Primer3Prefs *prefs_p)
 }
 
 
-bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *path_s)
+char *SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *path_s)
 {
-	bool success_flag = false;
 	char *filename_s = MakeFilename (path_s, "primer3.prefs");
+	bool success_flag = false;
 
 	if (filename_s)
 		{
@@ -146,10 +146,15 @@ bool SavePrimer3Prefs (Primer3Prefs *prefs_p, const char *path_s)
 
 				}		/* if (out_f) */
 
-			FreeCopiedString (filename_s);
+			if (!success_flag)
+				{
+					FreeCopiedString (filename_s);
+					filename_s = NULL;
+				}
+
 		}		/* if (filename_s) */
 
-	return success_flag;
+	return filename_s;
 }
 
 
@@ -242,20 +247,16 @@ bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p,
 }
 
 
-bool WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s, const PolymarkerServiceData *data_p)
+char *WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s, const PolymarkerServiceData *data_p)
 {
-	bool success_flag = false;
+	char *filename_s = NULL;
 	Primer3Prefs *prefs_p = AllocatePrimer3Prefs (data_p);
 
 	if (prefs_p)
 		{
 			if (ParsePrimer3PrefsParameters (params_p, prefs_p))
 				{
-					if (SavePrimer3Prefs (prefs_p, prefs_path_s))
-						{
-							success_flag = true;
-						}
-					else
+					if ((filename_s = SavePrimer3Prefs (prefs_p, prefs_path_s)) == NULL)
 						{
 							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "SavePrimer3Prefs to \"%s\" failed", prefs_path_s);
 						}
@@ -272,7 +273,7 @@ bool WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s,
 			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to allocate Primer3Prefs");
 		}
 
-	return success_flag;
+	return filename_s;
 }
 
 

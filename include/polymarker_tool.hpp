@@ -174,9 +174,6 @@ protected:
 	 */
 	char *pt_job_dir_s;
 
-
-	Primer3Prefs *pt_primer_prefs_p;
-
 	/**
 	 * The key used for specifying the PolymarkerTool's job directory within
 	 * and JSON-based serialisations of a PolymarkerTool.

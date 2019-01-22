@@ -133,7 +133,6 @@ PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerS
 
 	pt_job_dir_s = nullptr;
 
-	pt_primer_prefs_p = nullptr;
 
 	if (value_s)
 		{
@@ -153,6 +152,7 @@ PolymarkerTool :: PolymarkerTool (PolymarkerServiceJob *job_p, const PolymarkerS
 					throw std :: bad_alloc ();
 				}
 		}
+
 }
 
 
