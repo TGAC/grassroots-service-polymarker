@@ -65,6 +65,8 @@ static const char *GetPolymarkerServiceName (Service *service_p);
 
 static const char *GetPolymarkerServiceDesciption (Service *service_p);
 
+static const char *GetPolymarkerServiceWebpage (Service *service_p);
+
 static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resource *resource_p, UserDetails *user_p);
 
 static void ReleasePolymarkerServiceParameters (Service *service_p, ParameterSet *params_p);
@@ -136,7 +138,7 @@ ServicesArray *GetServices (UserDetails *user_p)
 							if (InitialiseService (service_p,
 								GetPolymarkerServiceName,
 								GetPolymarkerServiceDesciption,
-								NULL,
+								GetPolymarkerServiceWebpage,
 								RunPolymarkerService,
 								IsFileForPolymarkerService,
 								GetPolymarkerServiceParameters,
@@ -380,6 +382,12 @@ static const char *GetPolymarkerServiceDesciption (Service * UNUSED_PARAM (servi
 		"the probability of generating homoeologue-specific assays for polyploid wheat. PolyMarker generates "
 		"a multiple alignment between the target SNP sequence and the IWGSC chromosome survey sequences (IWGSC, 2014 ) for each of the three wheat genomes. "
 		"It then generates a mask with informative positions which are highlighted with respect to the target genome.";
+}
+
+
+static const char *GetPolymarkerServiceWebpage (Service * UNUSED_PARAM (service_p))
+{
+	return "http://polymarker.tgac.ac.uk/";
 }
 
 
