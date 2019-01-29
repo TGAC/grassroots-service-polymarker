@@ -40,6 +40,7 @@ extern "C"
 
 POLYMARKER_SERVICE_LOCAL bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_set_p);
 
+POLYMARKER_SERVICE_LOCAL bool CreateAndAddMarkerListFile (const char *marker_file_s, const ParameterSet *param_set_p, ByteBuffer *buffer_p);
 
 POLYMARKER_SERVICE_LOCAL const char *GetSequenceParametersGroupName (void);
 

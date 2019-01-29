@@ -209,45 +209,48 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 		{
 			if (EnsureDirectoryExists (pt_job_dir_s))
 				{
-					char *markers_filename_s = MakeFilename (pt_job_dir_s, "markers_list");
+					ByteBuffer *buffer_p = AllocateByteBuffer (1024);
 
-					if (markers_filename_s)
+					if (buffer_p)
 						{
-							if (CreateMarkerListFile (markers_filename_s, param_set_p))
+							if (AppendStringsToByteBuffer (buffer_p, aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --output ", pt_job_dir_s, " --aligner ", pt_service_data_p -> psd_aligner_s, NULL))
 								{
-									ByteBuffer *buffer_p = AllocateByteBuffer (1024);
+									char *markers_filename_s = MakeFilename (pt_job_dir_s, "markers_list");
 
-									if (buffer_p)
+									if (markers_filename_s)
 										{
-											bool made_exe_flag = false;
-
-											if (AppendStringsToByteBuffer (buffer_p, aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --marker_list ", markers_filename_s, " --output ", pt_job_dir_s, " --aligner ", pt_service_data_p -> psd_aligner_s, NULL))
+											if (CreateAndAddMarkerListFile (markers_filename_s, param_set_p, buffer_p))
 												{
 													char *prefs_file_s = WritePrimer3Config (param_set_p, pt_job_dir_s, pt_service_data_p);
 
 													if (prefs_file_s)
 														{
-															made_exe_flag = AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", prefs_file_s, NULL);
+															if (AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", prefs_file_s, NULL))
+																{
+																	aspt_command_line_args_s = DetachByteBufferData (buffer_p);
+																	success_flag = true;
+																}
+
 															FreeCopiedString (prefs_file_s);
 														}
-												}
+												}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
 
-											if (made_exe_flag)
-												{
-													aspt_command_line_args_s = DetachByteBufferData (buffer_p);
-													success_flag = true;
-												}
-											else
-												{
-													FreeByteBuffer (buffer_p);
-												}
+											FreeCopiedString (markers_filename_s);
+										}		/* if (markers_filename_s) */
 
-										}		/* if (buffer_p) */
+								}
 
-								}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
+							if (success_flag)
+								{
+									aspt_command_line_args_s = DetachByteBufferData (buffer_p);
+								}
+							else
+								{
+									FreeByteBuffer (buffer_p);
+								}
 
-							FreeCopiedString (markers_filename_s);
-						}		/* if (markers_filename_s) */
+						}		/* if (buffer_p) */
+
 
 				}		/* if (EnsureDirectoryExists (pt_job_dir_s)) */
 

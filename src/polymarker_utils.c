@@ -40,7 +40,7 @@
  * STATIC DECLARATIONS
  */
 
-static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FILE *marker_f);
+static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FILE *marker_f, bool *has_chromosome_param_p);
 
 static bool WriteParameterValuesFromGroup (ParameterGroup *group_p, FILE *marker_f);
 
@@ -63,7 +63,7 @@ const char *GetSequenceParametersGroupName (void)
 }
 
 
-bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_set_p)
+bool CreateAndAddMarkerListFile (const char *marker_file_s, const ParameterSet *param_set_p, ByteBuffer *buffer_p)
 {
 	bool success_flag = false;
 	FILE *marker_f = fopen (marker_file_s, "w");
@@ -72,8 +72,44 @@ bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_
 		{
 			uint32 i = 0;
 			bool loop_flag = true;
+			bool has_chromosome_flag = false;
 
-			if (WriteParameterValues (param_set_p, i, marker_f))
+			if (WriteParameterValues (param_set_p, i, marker_f, &has_chromosome_flag))
+				{
+					if (!has_chromosome_flag)
+						{
+							if (AppendStringsToByteBuffer (buffer_p, " --arm_selection arm_selection_first_two", " --marker_list ", marker_file_s, NULL))
+								{
+									success_flag = true;
+								}
+						}
+					else
+						{
+							if (AppendStringsToByteBuffer (buffer_p, " --marker_list ", marker_file_s, NULL))
+								{
+									success_flag = true;
+								}
+						}
+				}
+
+			fclose (marker_f);
+		}
+
+	return success_flag;
+}
+
+bool CreateMarkerListFile (const char *marker_file_s, const ParameterSet *param_set_p, bool has_chromosome_param_flag)
+{
+	bool success_flag = false;
+	FILE *marker_f = fopen (marker_file_s, "w");
+
+	if (marker_f)
+		{
+			uint32 i = 0;
+			bool loop_flag = true;
+			bool has_chromosome_flag = false;
+
+			if (WriteParameterValues (param_set_p, i, marker_f, &has_chromosome_flag))
 				{
 					success_flag = true;
 				}
@@ -194,7 +230,7 @@ bool CreateMarkerListFileByGroups (const char *marker_file_s, const ParameterSet
  * STATIC DEFINITIONS
  */
 
-static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FILE *marker_f)
+static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FILE *marker_f, bool *has_chromosome_param_p)
 {
 	bool success_flag = false;
 	SharedType gene_value;
@@ -229,6 +265,11 @@ static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FI
 
 									if (chromosome_value.st_string_value_s)
 										{
+											if (has_chromosome_param_p)
+												{
+													*has_chromosome_param_p = true;
+												}
+
 											if (fprintf (marker_f, "%s,%s,%s", gene_value.st_string_value_s, chromosome_value.st_string_value_s, sequence_to_use_s) > 0)
 												{
 													success_flag = true;
@@ -240,7 +281,12 @@ static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FI
 										}
 									else
 										{
-											if (fprintf (marker_f, "%s,%s", gene_value.st_string_value_s, sequence_to_use_s) > 0)
+											if (has_chromosome_param_p)
+												{
+													*has_chromosome_param_p = false;
+												}
+
+											if (fprintf (marker_f, "%s,%s,%s", gene_value.st_string_value_s, gene_value.st_string_value_s, sequence_to_use_s) > 0)
 												{
 													success_flag = true;
 												}
