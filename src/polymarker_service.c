@@ -855,16 +855,23 @@ static bool GetDatabaseParameterTypeForNamedParameter (PolymarkerServiceData *da
 				{
 					char *db_s = GetFullyQualifiedDatabaseName (group_s ? group_s : PS_DATABASE_GROUP_NAME_S, db_p -> ps_name_s);
 
-					if (strcmp (param_name_s, db_s) == 0)
+					if (db_s)
 						{
-							*pt_p = PT_BOOLEAN;
-							success_flag = true;
+							if (strcmp (param_name_s, db_s) == 0)
+								{
+									*pt_p = PT_BOOLEAN;
+									success_flag = true;
+								}
+
+							FreeCopiedString (db_s);
 						}
 					else
 						{
-							++ db_p;
-							-- i;
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "GetFullyQualifiedDatabaseName failed for \"%s\" and \"%s\"", group_s ? group_s : PS_DATABASE_GROUP_NAME_S, db_p -> ps_name_s);
 						}
+
+					++ db_p;
+					-- i;
 				}
 
 			if (group_s)
