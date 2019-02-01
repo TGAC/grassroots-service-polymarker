@@ -254,16 +254,11 @@ char *WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s
 
 	if (prefs_p)
 		{
-			if (ParsePrimer3PrefsParameters (params_p, prefs_p))
+			ParsePrimer3PrefsParameters (params_p, prefs_p);
+
+			if ((filename_s = SavePrimer3Prefs (prefs_p, prefs_path_s)) == NULL)
 				{
-					if ((filename_s = SavePrimer3Prefs (prefs_p, prefs_path_s)) == NULL)
-						{
-							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "SavePrimer3Prefs to \"%s\" failed", prefs_path_s);
-						}
-				}
-			else
-				{
-					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "ParsePrimer3PrefsParameters failed");
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "SavePrimer3Prefs to \"%s\" failed", prefs_path_s);
 				}
 
 			FreePrimer3Prefs (prefs_p);
@@ -277,9 +272,8 @@ char *WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s
 }
 
 
-bool ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *prefs_p)
+void ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *prefs_p)
 {
-	bool success_flag = false;
 	SharedType value;
 
 	InitSharedType (&value);
@@ -287,47 +281,37 @@ bool ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *pr
 	if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MIN.npt_name_s, &value, true))
 		{
 			prefs_p -> pp_product_size_range_min = value.st_ulong_value;
+		}
 
-			if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MAX.npt_name_s, &value, true))
-				{
-					prefs_p -> pp_product_size_range_max = value.st_ulong_value;
+	if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MAX.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_product_size_range_max = value.st_ulong_value;
+		}
 
-					if (GetParameterValueFromParameterSet (params_p, S_MAX_SIZE.npt_name_s, &value, true))
-						{
-							prefs_p -> pp_max_size = value.st_ulong_value;
+	if (GetParameterValueFromParameterSet (params_p, S_MAX_SIZE.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_max_size = value.st_ulong_value;
+		}
 
-							if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true))
-								{
-									prefs_p -> pp_lib_ambiguity_codes_consensus = value.st_boolean_value;
+	if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_lib_ambiguity_codes_consensus = value.st_boolean_value;
+		}
 
-									if (GetParameterValueFromParameterSet (params_p, S_LIBERAL_BASE.npt_name_s, &value, true))
-										{
-											prefs_p -> pp_liberal_base = value.st_boolean_value;
+	if (GetParameterValueFromParameterSet (params_p, S_LIBERAL_BASE.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_liberal_base = value.st_boolean_value;
+		}
 
-											if (GetParameterValueFromParameterSet (params_p, S_NUM_RETURN.npt_name_s, &value, true))
-												{
-													prefs_p -> pp_num_return = value.st_boolean_value;
+	if (GetParameterValueFromParameterSet (params_p, S_NUM_RETURN.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_num_return = value.st_boolean_value;
+		}
 
-													if (GetParameterValueFromParameterSet (params_p, S_EXPLAIN_FLAG.npt_name_s, &value, true))
-														{
-															prefs_p -> pp_explain_flag = value.st_boolean_value;
-
-															success_flag = true;
-														}		/* if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value)) */
-
-												}		/* if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true)) */
-
-										}		/* if (GetParameterValueFromParameterSet (params_p, S_LIBERAL_BASE.npt_name_s, &value, true)) */
-
-								}		/* if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true)) */
-
-						}		/* if (GetParameterValueFromParameterSet (params_p, S_MAX_SIZE.npt_name_s, &value, true)) */
-
-				}		/* if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MAX.npt_name_s, &value, true)) */
-
-		}		/* if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MIN.npt_name_s, &value, true)) */
-
-	return success_flag;
+	if (GetParameterValueFromParameterSet (params_p, S_EXPLAIN_FLAG.npt_name_s, &value, true))
+		{
+			prefs_p -> pp_explain_flag = value.st_boolean_value;
+		}
 }
 
 

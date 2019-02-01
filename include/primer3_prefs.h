@@ -92,7 +92,7 @@ POLYMARKER_SERVICE_LOCAL bool AddPrimer3PrefsParameters (ParameterSet *params_p,
 POLYMARKER_SERVICE_LOCAL bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p);
 
 
-POLYMARKER_SERVICE_LOCAL bool ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *prefs_p);
+POLYMARKER_SERVICE_LOCAL void ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *prefs_p);
 
 
 POLYMARKER_SERVICE_LOCAL char *WritePrimer3Config (const ParameterSet *params_p, const char *prefs_path_s, const PolymarkerServiceData *data_p);
