@@ -223,16 +223,26 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 												{
 													char *prefs_file_s = WritePrimer3Config (param_set_p, pt_job_dir_s, pt_service_data_p);
 
+													/*
+													 * use a custom primer3 config
+													 */
 													if (prefs_file_s)
 														{
 															if (AppendStringsToByteBuffer (buffer_p, " --primer_3_preferences ", prefs_file_s, NULL))
 																{
-																	aspt_command_line_args_s = DetachByteBufferData (buffer_p);
 																	success_flag = true;
 																}
 
 															FreeCopiedString (prefs_file_s);
 														}
+													else
+														{
+															/*
+															 * use the default primer3 config
+															 */
+															success_flag = true;
+														}
+
 												}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
 
 											FreeCopiedString (markers_filename_s);

@@ -101,8 +101,6 @@ static char *GetLocalDatabaseGroupName (void);
 
 static char *GetFullyQualifiedDatabaseName (const char *group_s, const char *db_s);
 
-static const char *GetLocalDatabaseName (const char *fully_qualified_db_s);
-
 
 
 static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *param_set_p);
@@ -532,6 +530,10 @@ static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *pa
 														}
 
 												}
+											else
+												{
+													SetServiceJobStatus (& (job_p -> psj_base_job), OS_FAILED_TO_START);
+												}
 
 											job_p = (PolymarkerServiceJob *) GetNextServiceJobFromServiceJobSetIterator (&iterator);
 										}
@@ -928,25 +930,6 @@ static char *GetFullyQualifiedDatabaseName (const char *group_s, const char *db_
 	char *fq_db_s = ConcatenateVarargsStrings (group_s ? group_s : PS_DATABASE_GROUP_NAME_S, S_DB_SEP_S, db_s, NULL);
 
 	return fq_db_s;
-}
-
-
-static const char *GetLocalDatabaseName (const char *fully_qualified_db_s)
-{
-	const char *db_s = NULL;
-	const char *sep_p = strstr (fully_qualified_db_s, S_DB_SEP_S);
-
-	if (sep_p)
-		{
-			const size_t l = strlen (S_DB_SEP_S);
-
-			if (strlen (sep_p) >= l)
-				{
-					db_s += l;
-				}
-		}
-
-	return db_s;
 }
 
 
