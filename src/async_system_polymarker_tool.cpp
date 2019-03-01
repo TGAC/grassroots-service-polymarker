@@ -232,6 +232,10 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 																{
 																	success_flag = true;
 																}
+															else
+																{
+																	PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to append --primer_3_preferences %s to buffer for job %s", prefs_file_s, uuid_s);
+																}
 
 															FreeCopiedString (prefs_file_s);
 														}
@@ -244,10 +248,22 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 														}
 
 												}		/* if (CreateMarkerListFile (markers_filename_s, param_set_p)) */
+											else
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "CreateMarkerListFile failed for \"%s\" for job %s", markers_filename_s, uuid_s);
+												}
 
 											FreeCopiedString (markers_filename_s);
 										}		/* if (markers_filename_s) */
+									else
+										{
+											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "MakeFilename failed for \"%s\" and \"markers_list\" for job %s", pt_job_dir_s, uuid_s);
+										}
 
+								}		/* if (AppendStringsToByteBuffer (buffer_p, aspt_executable_s, " --contigs ", pt_seq_p -> ps_fasta_filename_s, " --output ", pt_job_dir_s, " --aligner ", pt_service_data_p -> psd_aligner_s, NULL */
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to append %s --contigs %s --output %s --aligner %s to buffer for job %s", aspt_executable_s, pt_seq_p -> ps_fasta_filename_s, pt_job_dir_s, pt_service_data_p -> psd_aligner_s, uuid_s);
 								}
 
 							if (success_flag)
@@ -260,9 +276,16 @@ bool AsyncSystemPolymarkerTool :: ParseParameters (const ParameterSet * const pa
 								}
 
 						}		/* if (buffer_p) */
-
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create buffer for job %s", uuid_s);
+						}
 
 				}		/* if (EnsureDirectoryExists (pt_job_dir_s)) */
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to make sure directory \"%s\" exists", pt_job_dir_s);
+				}
 
 		}		/* if (pt_job_dir_s) */
 
