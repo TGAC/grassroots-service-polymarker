@@ -297,12 +297,26 @@ bool AddPolymarkerResult (PolymarkerServiceJob *polymarker_job_p, const char *uu
 										}
 
 								}		/* if (polymarker_result_json_p) */
-
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create Polymarker result for \"%s\"", uuid_s);
+								}
 						}
-
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add exons_genes_and_contigs results for \"%s\"", uuid_s);
+						}
+				}
+			else
+				{
+					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add primers results for \"%s\"", uuid_s);
 				}
 
 			json_decref (result_json_p);
+		}
+	else
+		{
+			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to create JSON result object for \"%s\"", uuid_s);
 		}
 
 	return success_flag;
@@ -318,7 +332,11 @@ bool DeterminePolymarkerResult (PolymarkerServiceJob *polymarker_job_p)
 
 	if (status == OS_SUCCEEDED)
 		{
-			if (!AddPolymarkerResult (polymarker_job_p, uuid_s))
+			if (AddPolymarkerResult (polymarker_job_p, uuid_s))
+				{
+					success_flag = true;
+				}
+			else
 				{
 					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get PolymarkerServiceJob result for \"%s\"", uuid_s);
 				}
