@@ -384,7 +384,7 @@ static const char *GetPolymarkerServiceDesciption (Service * UNUSED_PARAM (servi
 
 
 static const char *GetPolymarkerServiceWebpage (Service * UNUSED_PARAM (service_p))
-{w
+{
 	return "http://www.polymarker.info/";
 }
 
