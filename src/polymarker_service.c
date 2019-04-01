@@ -147,7 +147,8 @@ ServicesArray *GetServices (UserDetails *user_p)
 								true,
 								SY_SYNCHRONOUS,
 								(ServiceData *) data_p,
-								GetPolymarkerServiceMetadata))
+								GetPolymarkerServiceMetadata,
+								NULL))
 								{
 							
 									if (GetPolymarkerServiceConfig (data_p))
