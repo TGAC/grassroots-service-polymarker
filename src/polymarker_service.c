@@ -53,6 +53,9 @@ static const char * const PS_DATABASE_GROUP_NAME_S = "Available contigs";
 
 static const char * const S_DB_SEP_S = " -> ";
 
+static const char * const S_INDEX_FILES_S = "index_files";
+
+
 /*
  * STATIC PROTOTYPES
  */
@@ -115,6 +118,11 @@ static ServiceMetadata *GetPolymarkerServiceMetadata (Service *service_p);
 
 static bool CleanupAsyncPolymarkerService (void *data_p);
 
+
+static json_t *GetPolymarkerIndexingData (struct Service *service_p);
+
+static bool AddDatabaseForIndexing (const PolymarkerSequence *db_p, json_t *json_p);
+
 /*
  * API FUNCTIONS
  */
@@ -148,7 +156,7 @@ ServicesArray *GetServices (UserDetails *user_p)
 								SY_SYNCHRONOUS,
 								(ServiceData *) data_p,
 								GetPolymarkerServiceMetadata,
-								NULL))
+								GetPolymarkerIndexingData))
 								{
 							
 									if (GetPolymarkerServiceConfig (data_p))
@@ -183,6 +191,90 @@ void ReleaseServices (ServicesArray *services_p)
  * STATIC FUNCTIONS 
  */
  
+
+
+static json_t *GetPolymarkerIndexingData (struct Service *service_p)
+{
+	json_t *res_p = GetBaseServiceDataAsJSON (service_p, NULL);
+
+	if (res_p)
+		{
+			json_t *databases_json_p = json_array ();
+
+			if (databases_json_p)
+				{
+					if (json_object_set_new (res_p, S_INDEX_FILES_S, databases_json_p) == 0)
+						{
+							PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
+							PolymarkerSequence *database_p = data_p -> psd_index_data_p;
+							bool success_flag = true;
+							size_t i = data_p -> psd_index_data_size;
+
+							while ((i > 0) && success_flag)
+								{
+									if (AddDatabaseForIndexing (database_p, databases_json_p))
+										{
+											-- i;
+										}
+									else
+										{
+											success_flag = false;
+										}
+								}		/* if (database_p) */
+
+							if (success_flag)
+								{
+									return res_p;
+								}
+
+						}		/* if (json_object_set_new (res_p, S_INDEX_FILES_S, databases_json_p) == 0) */
+					else
+						{
+							json_decref (databases_json_p);
+						}
+
+				}		/* if (databases_json_p) */
+
+			json_decref (res_p);
+		}		/* if (res_p) */
+
+	return NULL;
+}
+
+
+static bool AddDatabaseForIndexing (const PolymarkerSequence *db_p, json_t *json_p)
+{
+	json_t *db_json_p = json_object ();
+
+	if (db_json_p)
+		{
+			if (SetJSONString (db_json_p, CONTEXT_PREFIX_SCHEMA_ORG_S "name", db_p -> ps_name_s))
+				{
+					bool success_flag = true;
+
+					if (db_p -> ps_description_s)
+						{
+							if (!SetJSONString (db_json_p, CONTEXT_PREFIX_SCHEMA_ORG_S "description", db_p -> ps_description_s))
+								{
+									success_flag = false;
+								}
+						}
+
+					if (success_flag)
+						{
+							if (json_array_append_new (json_p, db_json_p) == 0)
+								{
+									return true;
+								}
+						}
+				}
+
+			json_decref (db_json_p);
+		}		/* if (db_json_p) */
+
+	return false;
+}
+
 
 static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 {
@@ -269,7 +361,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
 			/*
 			 * index files
 			 */
-			index_files_p = json_object_get (polymarker_config_p, "index_files");
+			index_files_p = json_object_get (polymarker_config_p, S_INDEX_FILES_S);
 
 			if (index_files_p)
 				{
