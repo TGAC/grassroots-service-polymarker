@@ -333,7 +333,8 @@ OperationStatus AsyncSystemPolymarkerTool :: Run ()
 		{
 			if (SetSystemAsyncTaskCommand	(aspt_task_p, aspt_command_line_args_s))
 				{
-					JobsManager *manager_p = GetJobsManager ();
+					GrassrootsServer *grassroots_p = GetGrassrootsServerFromService (base_job_p -> sj_service_p);
+					JobsManager *manager_p = GetJobsManager (grassroots_p);
 
 					#if ASYNC_SYSTEM_POLYMARKER_TOOL_DEBUG >= STM_LEVEL_FINE
 					PrintLog (STM_LEVEL_FINE, __FILE__, __LINE__, "About to run SystemPolymarkerTool with \"%s\"", aspt_command_line_args_s);

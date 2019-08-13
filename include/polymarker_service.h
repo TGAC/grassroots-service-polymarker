@@ -245,7 +245,7 @@ extern "C"
  * <code>NULL</code> upon error.
  * @ingroup polymarker_service
  */
-POLYMARKER_SERVICE_API ServicesArray *GetServices (UserDetails *user_p);
+POLYMARKER_SERVICE_API ServicesArray *GetServices (UserDetails *user_p, GrassrootsServer *grassroots_p);
 
 
 /**

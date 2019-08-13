@@ -25,8 +25,6 @@
 #include "jobs_manager.h"
 #include "byte_buffer.h"
 #include "polymarker_service_job.h"
-#include "service_config.h"
-#include "grassroots_config.h"
 #include "provider.h"
 #include "service_job_set_iterator.h"
 #include "service_job.h"
@@ -80,7 +78,7 @@ static  ParameterSet *IsFileForPolymarkerService (Service *service_p, Resource *
 
 static bool ClosePolymarkerService (Service *service_p);
 
-static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p);
+static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p, GrassrootsServer *grassroots_p);
 
 
 static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), ServiceJob *job_p);
@@ -99,7 +97,7 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 
 static char *CreateGroupName (const char *server_s);
 
-static char *GetLocalDatabaseGroupName (void);
+static char *GetLocalDatabaseGroupName (GrassrootsServer *grassroots_p);
 
 
 static char *GetFullyQualifiedDatabaseName (const char *group_s, const char *db_s);
@@ -126,7 +124,7 @@ static bool AddDatabaseForIndexing (const PolymarkerSequence *db_p, json_t *json
 /*
  * API FUNCTIONS
  */
-ServicesArray *GetServices (UserDetails *user_p)
+ServicesArray *GetServices (UserDetails *user_p, GrassrootsServer *grassroots_p)
 {
 	Service *service_p = (Service *) AllocMemory (sizeof (Service));
 
@@ -156,10 +154,11 @@ ServicesArray *GetServices (UserDetails *user_p)
 								SY_SYNCHRONOUS,
 								(ServiceData *) data_p,
 								GetPolymarkerServiceMetadata,
-								GetPolymarkerIndexingData))
+								GetPolymarkerIndexingData,
+								grassroots_p))
 								{
 							
-									if (GetPolymarkerServiceConfig (data_p))
+									if (GetPolymarkerServiceConfig (data_p, grassroots_p))
 										{
 											* (services_p -> sa_services_pp) = service_p;
 
@@ -276,7 +275,7 @@ static bool AddDatabaseForIndexing (const PolymarkerSequence *db_p, json_t *json
 }
 
 
-static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p)
+static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p, GrassrootsServer *grassroots_p)
 {
 	bool success_flag = true;
 	const json_t *polymarker_config_p = data_p -> psd_base_data.sd_config_p;
@@ -828,7 +827,8 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 {
 	PolymarkerSequence *db_p = data_p -> psd_index_data_p;
 	size_t i = 0;
-	char *group_s = GetLocalDatabaseGroupName ();
+	GrassrootsServer *grassroots_p = GetGrassrootsServerFromService (service_p);
+	char *group_s = GetLocalDatabaseGroupName (grassroots_p);
 
 	for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
 		{
@@ -895,7 +895,8 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
 			SharedType def;
 			size_t i = 0;
-			char *group_s = GetLocalDatabaseGroupName ();
+			GrassrootsServer *grassroots_p = GetGrassrootsServerFromService (data_p -> psd_base_data.sd_service_p);
+			char *group_s = GetLocalDatabaseGroupName (grassroots_p);
 
 			group_p = CreateAndAddParameterGroupToParameterSet (group_s, false, & (data_p -> psd_base_data), param_set_p);
 
@@ -942,7 +943,8 @@ static bool GetDatabaseParameterTypeForNamedParameter (PolymarkerServiceData *da
 
 	if (data_p -> psd_index_data_size > 0)
 		{
-			char *group_s = GetLocalDatabaseGroupName ();
+			GrassrootsServer *grassroots_p = GetGrassrootsServerFromService (data_p -> psd_base_data.sd_service_p);
+			char *group_s = GetLocalDatabaseGroupName (grassroots_p);
 			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
 			size_t i = data_p -> psd_index_data_size;
 
@@ -999,10 +1001,10 @@ static char *CreateGroupName (const char *server_s)
 }
 
 
-static char *GetLocalDatabaseGroupName (void)
+static char *GetLocalDatabaseGroupName (GrassrootsServer *grassroots_p)
 {
 	char *group_s = NULL;
-	const json_t *provider_p = GetGlobalConfigValue (SERVER_PROVIDER_S);
+	const json_t *provider_p = GetGlobalConfigValue (grassroots_p, SERVER_PROVIDER_S);
 
 	if (provider_p)
 		{
