@@ -165,31 +165,31 @@ bool AddPrimer3PrefsParameters (ParameterSet *params_p, PolymarkerServiceData *d
 	SharedType def;
 	ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet ("Primer3 Parameters", false, & (data_p -> psd_base_data), params_p);
 
-	def.st_ulong_value = S_DEFAULT_PROD_SIZE_MIN;
+	def.st_ulong_value_p = (uint32 *) &S_DEFAULT_PROD_SIZE_MIN;
 
 	if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_PROD_SIZE_MIN.npt_type, S_PROD_SIZE_MIN.npt_name_s, "Product size minimum", "The minimum value of the PCR range", def, PL_ADVANCED)) != NULL)
 		{
-			def.st_ulong_value = S_DEFAULT_PROD_SIZE_MAX;
+			def.st_ulong_value_p = (uint32 *) &S_DEFAULT_PROD_SIZE_MAX;
 
 			if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_PROD_SIZE_MAX.npt_type, S_PROD_SIZE_MAX.npt_name_s, "Product size maximum", "The maximum value of the PCR range", def, PL_ADVANCED)) != NULL)
 				{
-					def.st_ulong_value = S_DEFAULT_MAX_SIZE;
+					def.st_ulong_value_p = (uint32 *) &S_DEFAULT_MAX_SIZE;
 
 					if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_MAX_SIZE.npt_type, S_MAX_SIZE.npt_name_s, "Maximum primer size", "Maximum acceptable length (in bases) of a primer. Currently this parameter cannot be larger than 35.", def, PL_ADVANCED)) != NULL)
 						{
-							def.st_boolean_value = S_DEFAULT_LIB_AMBIGUITY_CODES_CONSENSUS;
+							def.st_boolean_value_p = (bool *) &S_DEFAULT_LIB_AMBIGUITY_CODES_CONSENSUS;
 
 							if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_type, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, "Ambiguity codes consensus", "If true, treat ambiguity codes as if they were consensus codes when matching oligos to mispriming or mishyb libraries", def, PL_ADVANCED)) != NULL)
 								{
-									def.st_boolean_value = S_DEFAULT_LIBERAL_BASE;
+									def.st_boolean_value_p = (bool *) &S_DEFAULT_LIBERAL_BASE;
 
 									if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_LIBERAL_BASE.npt_type, S_LIBERAL_BASE.npt_name_s, "Liberal base", "This parameter provides a quick-and-dirty way to get primer3 to accept IUB / IUPAC codes for ambiguous bases (i.e. by changing all unrecognized bases to N). If you wish to include an ambiguous base in an oligo, you must set this to true", def, PL_ADVANCED)) != NULL)
 										{
-											def.st_ulong_value = S_DEFAULT_NUM_RETURN;
+											def.st_ulong_value_p = (uint32 *) &S_DEFAULT_NUM_RETURN;
 
 											if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_NUM_RETURN.npt_type, S_NUM_RETURN.npt_name_s, "Number of hits", "The maximum number of primer (pairs) to return.", def, PL_ADVANCED)) != NULL)
 												{
-													def.st_boolean_value = S_DEFAULT_EXPLAIN;
+													def.st_boolean_value_p = (bool *) &S_DEFAULT_EXPLAIN;
 
 													if ((param_p = EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), params_p, group_p, S_EXPLAIN_FLAG.npt_type, S_EXPLAIN_FLAG.npt_name_s, "Explain", "These output tags are intended to provide information on the number of oligos and primer pairs that primer3 examined and counts of the number discarded for various reasons", def, PL_ADVANCED)) != NULL)
 														{
@@ -280,37 +280,58 @@ void ParsePrimer3PrefsParameters (const ParameterSet *params_p, Primer3Prefs *pr
 
 	if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MIN.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_product_size_range_min = value.st_ulong_value;
+			if (value.st_ulong_value_p)
+				{
+					prefs_p -> pp_product_size_range_min = *value.st_ulong_value_p;
+				}
 		}
 
 	if (GetParameterValueFromParameterSet (params_p, S_PROD_SIZE_MAX.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_product_size_range_max = value.st_ulong_value;
+			if (value.st_ulong_value_p)
+				{
+					prefs_p -> pp_product_size_range_max = *value.st_ulong_value_p;
+				}
 		}
 
 	if (GetParameterValueFromParameterSet (params_p, S_MAX_SIZE.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_max_size = value.st_ulong_value;
+			if (value.st_ulong_value_p)
+				{
+					prefs_p -> pp_max_size = *value.st_ulong_value_p;
+				}
 		}
 
 	if (GetParameterValueFromParameterSet (params_p, S_LIB_AMBIGUITY_CODES_CONSENSUS.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_lib_ambiguity_codes_consensus = value.st_boolean_value;
+			if (value.st_boolean_value_p)
+				{
+					prefs_p -> pp_lib_ambiguity_codes_consensus = *value.st_boolean_value_p;
+				}
 		}
 
 	if (GetParameterValueFromParameterSet (params_p, S_LIBERAL_BASE.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_liberal_base = value.st_boolean_value;
+			if (value.st_boolean_value_p)
+				{
+					prefs_p -> pp_liberal_base = *value.st_boolean_value_p;
+				}
 		}
 
 	if (GetParameterValueFromParameterSet (params_p, S_NUM_RETURN.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_num_return = value.st_boolean_value;
+			if (value.st_boolean_value_p)
+				{
+					prefs_p -> pp_num_return = *value.st_boolean_value_p;
+				}
 		}
 
 	if (GetParameterValueFromParameterSet (params_p, S_EXPLAIN_FLAG.npt_name_s, &value, true))
 		{
-			prefs_p -> pp_explain_flag = value.st_boolean_value;
+			if (value.st_boolean_value_p)
+				{
+					prefs_p -> pp_explain_flag = *value.st_boolean_value_p;
+				}
 		}
 }
 
