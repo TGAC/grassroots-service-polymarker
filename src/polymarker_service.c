@@ -842,7 +842,8 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 					if (param_p)
 						{
 							/* Is the database selected to search against? */
-							if (CompareSharedTypeBooleanValue (& (param_p -> pa_current_value), true))
+							//if (CompareSharedTypeBooleanValue (& (param_p -> pa_current_value), true))
+							if (param_p -> pa_current_value.st_boolean_value)
 								{
 									PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (service_p, db_p, data_p);
 
@@ -908,7 +909,7 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 
 					if (db_s)
 						{
-							def.st_boolean_value_p = & (db_p -> ps_active_flag);
+							def.st_boolean_value = db_p -> ps_active_flag;
 
 							if (EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, PT_BOOLEAN, db_s, db_p -> ps_name_s, db_p -> ps_description_s, def, PL_ALL))
 								{
