@@ -35,6 +35,8 @@
 #include "polymarker_service_job.h"
 #include "polymarker_tool.hpp"
 
+#include "string_parameter.h"
+
 
 /*
  * STATIC DECLARATIONS
@@ -233,50 +235,46 @@ bool CreateMarkerListFileByGroups (const char *marker_file_s, const ParameterSet
 static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FILE *marker_f, bool *has_chromosome_param_p)
 {
 	bool success_flag = false;
-	SharedType gene_value;
+	const char *gene_s = NULL;
 
-	InitSharedType (&gene_value);
 
-	if (GetParameterValueFromParameterSet (params_p, PS_GENE_ID.npt_name_s, &gene_value, true))
+	if (GetCurrentStringParameterValueFromParameterSet (params_p, PS_GENE_ID.npt_name_s, &gene_s))
 		{
-			if (gene_value.st_string_value_s)
+			if (gene_s)
 				{
 					/*
 					 * The gene and sequence values are required, the chromosome is optional
 					 */
-					SharedType chromosome_value;
-					SharedType sequence_value;
+					const char *chromosome_s = NULL;
+					const char *sequence_value_s = NULL;
 
-					InitSharedType (&chromosome_value);
-					GetParameterValueFromParameterSet (params_p, PS_TARGET_CHROMOSOME.npt_name_s, &chromosome_value, true);
+					GetCurrentStringParameterValueFromParameterSet (params_p, PS_TARGET_CHROMOSOME.npt_name_s, &chromosome_s);
 
-					InitSharedType (&sequence_value);
-
-					if (GetParameterValueFromParameterSet (params_p, PS_SEQUENCE.npt_name_s, &sequence_value, true))
+					if (GetCurrentStringParameterValueFromParameterSet (params_p, PS_SEQUENCE.npt_name_s, &sequence_value_s))
 						{
-							if (sequence_value.st_string_value_s)
+							if (sequence_value_s)
 								{
 									/*
 									 * This sequence could be of the form ATCG[C/A]TGCA... or
 									 * in the grassroots markup from the blast service.
 									 */
-									char *sequence_s = ParseSequence (sequence_value.st_string_value_s);
-									const char *sequence_to_use_s = sequence_s ? sequence_s : sequence_value.st_string_value_s;
+									char *sequence_s = ParseSequence (sequence_value_s);
+									const char *sequence_to_use_s = sequence_s ? sequence_s : sequence_value_s;
 
-									if (chromosome_value.st_string_value_s)
+									if (chromosome_s)
 										{
 											if (has_chromosome_param_p)
 												{
 													*has_chromosome_param_p = true;
 												}
 
-											if (fprintf (marker_f, "%s,%s,%s", gene_value.st_string_value_s, chromosome_value.st_string_value_s, sequence_to_use_s) > 0)
+											if (fprintf (marker_f, "%s,%s,%s", gene_s, chromosome_s, sequence_to_use_s) > 0)
 												{
 													success_flag = true;
 												}
 											else
 												{
-													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "%s,%s,%s", gene_value.st_string_value_s, chromosome_value.st_string_value_s, sequence_to_use_s);
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "%s,%s,%s", gene_s, chromosome_s, sequence_to_use_s);
 												}
 										}
 									else
@@ -286,13 +284,13 @@ static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FI
 													*has_chromosome_param_p = false;
 												}
 
-											if (fprintf (marker_f, "%s,%s,%s", gene_value.st_string_value_s, gene_value.st_string_value_s, sequence_to_use_s) > 0)
+											if (fprintf (marker_f, "%s,%s,%s", gene_s, gene_s, sequence_to_use_s) > 0)
 												{
 													success_flag = true;
 												}
 											else
 												{
-													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "%s,%s", gene_value.st_string_value_s, sequence_to_use_s);
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "%s,%s", gene_s, sequence_to_use_s);
 												}
 										}
 
@@ -330,66 +328,75 @@ static bool WriteParameterValues (const ParameterSet *params_p, uint32 index, FI
 static bool WriteParameterValuesFromGroup (ParameterGroup *group_p, FILE *marker_f)
 {
 	bool success_flag = false;
-	SharedType value;
+	const char *gene_s = NULL;
 
-	InitSharedType (&value);
 
-	if (GetParameterValueFromParameterGroup (group_p, PS_GENE_ID.npt_name_s, &value, true))
+	if (GetCurrentStringParameterValueFromParameterGroup (group_p, PS_GENE_ID.npt_name_s, &gene_s))
 		{
-			if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0)
+			if (gene_s)
 				{
-					/* The chromosome is optional */
-					if (GetParameterValueFromParameterGroup (group_p, PS_TARGET_CHROMOSOME.npt_name_s, &value, true))
+					if (fprintf (marker_f, "%s,", gene_s) > 0)
 						{
-							if (fprintf (marker_f, "%s,", value.st_string_value_s) < 0)
+							const char *sequence_value_s = NULL;
+							const char *chromosome_s = NULL;
+
+							/* The chromosome is optional */
+							if (GetCurrentStringParameterValueFromParameterGroup (group_p, PS_TARGET_CHROMOSOME.npt_name_s, &chromosome_s))
 								{
-									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, value.st_string_value_s);
-								}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
-
-						}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
-					else
-						{
-							PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s);
-						}
-
-
-					if (GetParameterValueFromParameterGroup (group_p, PS_SEQUENCE.npt_name_s, &value, true))
-						{
-							if (value.st_string_value_s)
+									if (chromosome_s)
+										{
+											if (fprintf (marker_f, "%s,", chromosome_s) < 0)
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, chromosome_s);
+												}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
+										}
+								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
+							else
 								{
-									/*
-									 * This sequence could be of the form ATCG[C/A]TGCA... or
-									 * in the grassroots markup from the blast service.
-									 */
-									char *sequence_s = ParseSequence (value.st_string_value_s);
-
-									if (sequence_s)
-										{
-											success_flag = (fprintf (marker_f, "%s", sequence_s) > 0);
-											FreeCopiedString (sequence_s);
-										}
-									else
-										{
-											success_flag = (fprintf (marker_f, "%s", value.st_string_value_s) > 0);
-										}
-
-									if (!success_flag)
-										{
-											PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, value.st_string_value_s);
-										}
+									PrintErrors (STM_LEVEL_INFO, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s);
 								}
 
-						}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
+
+							if (GetCurrentStringParameterValueFromParameterGroup (group_p, PS_SEQUENCE.npt_name_s, &sequence_value_s))
+								{
+									if (sequence_value_s)
+										{
+											/*
+											 * This sequence could be of the form ATCG[C/A]TGCA... or
+											 * in the grassroots markup from the blast service.
+											 */
+											char *sequence_s = ParseSequence (sequence_value_s);
+
+											if (sequence_s)
+												{
+													success_flag = (fprintf (marker_f, "%s", sequence_s) > 0);
+													FreeCopiedString (sequence_s);
+												}
+											else
+												{
+													success_flag = (fprintf (marker_f, "%s", sequence_value_s) > 0);
+												}
+
+											if (!success_flag)
+												{
+													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_SEQUENCE.npt_name_s, sequence_value_s);
+												}
+										}
+
+								}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
+							else
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_SEQUENCE.npt_name_s);
+								}
+
+						}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
 					else
 						{
-							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get parameter \"%s\"", PS_SEQUENCE.npt_name_s);
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_GENE_ID.npt_name_s, gene_s);
 						}
 
-				}		/* if (fprintf (marker_f, "%s,", value.st_string_value_s) > 0) */
-			else
-				{
-					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to write parameter \"%s\" value \"%s\"", PS_TARGET_CHROMOSOME.npt_name_s, value.st_string_value_s);
-				}
+				}		/* if (gene_s) */
+
 
 		}		/* if (GetParameterValueFromParameterSet (param_set_p, PS_GENE_ID.npt_name_s, &value, true)) */
 	else

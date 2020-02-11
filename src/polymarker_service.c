@@ -32,6 +32,9 @@
 #include "polymarker_tool.hpp"
 #include "primer3_prefs.h"
 
+#include "string_parameter.h"
+#include "boolean_parameter.h"
+
 
 #ifdef _DEBUG
 	#define POLYMARKER_SERVICE_DEBUG	(STM_LEVEL_FINEST)
@@ -489,25 +492,20 @@ static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resourc
 		{
 			PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
 			Parameter *param_p = NULL;
-			SharedType def;
 			ParameterGroup *group_p = CreateAndAddParameterGroupToParameterSet (GetSequenceParametersGroupName (), true, & (data_p -> psd_base_data), param_set_p);
-
 
 			if (!group_p)
 				{
 					PrintErrors (STM_LEVEL_WARNING, __FILE__, __LINE__, "Failed to create Polymarker service Sequence parameters group");
 				}
 
-			def.st_string_value_s = NULL;
-
-
-			if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, NULL, PS_JOB_IDS.npt_type, PS_JOB_IDS.npt_name_s, "Previous job ids", "The ids for previous sets of results", def, PL_ALL)) != NULL)
+			if ((param_p = EasyCreateAndAddStringParameterToParameterSet (service_p -> se_data_p, param_set_p, NULL, PS_JOB_IDS.npt_type, PS_JOB_IDS.npt_name_s, "Previous job ids", "The ids for previous sets of results", NULL, PL_ALL)) != NULL)
 				{
-					if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_GENE_ID.npt_type, PS_GENE_ID.npt_name_s, "Gene ID", "An unique identifier for the assay", def, PL_ALL)) != NULL)
+					if ((param_p = EasyCreateAndAddStringParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_GENE_ID.npt_type, PS_GENE_ID.npt_name_s, "Gene ID", "An unique identifier for the assay", NULL, PL_ALL)) != NULL)
 						{
-							if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_TARGET_CHROMOSOME.npt_type, PS_TARGET_CHROMOSOME.npt_name_s, "Target Chromosome", "The chromosome to use", def, PL_ALL)) != NULL)
+							if ((param_p = EasyCreateAndAddStringParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_TARGET_CHROMOSOME.npt_type, PS_TARGET_CHROMOSOME.npt_name_s, "Target Chromosome", "The chromosome to use", NULL, PL_ALL)) != NULL)
 								{
-									if ((param_p = EasyCreateAndAddParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_SEQUENCE.npt_type, PS_SEQUENCE.npt_name_s, "Sequence surrounding the polymorphisms", "The SNP must be marked in the format [A/T] for a varietal SNP with alternative bases, A or T",  def, PL_ALL)) != NULL)
+									if ((param_p = EasyCreateAndAddStringParameterToParameterSet (service_p -> se_data_p, param_set_p, group_p, PS_SEQUENCE.npt_type, PS_SEQUENCE.npt_name_s, "Sequence surrounding the polymorphisms", "The SNP must be marked in the format [A/T] for a varietal SNP with alternative bases, A or T",  NULL, PL_ALL)) != NULL)
 										{
 											uint16 num_dbs = AddDatabaseParams (data_p, param_set_p);
 
@@ -570,26 +568,29 @@ static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service
 static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails * UNUSED_PARAM (user_p), ProvidersStateTable * UNUSED_PARAM (providers_p))
 {
 	PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
-	SharedType value;
+	const char *job_ids_s = NULL;
 
-	InitSharedType (&value);
 
-	if ((GetParameterValueFromParameterSet (param_set_p, PS_JOB_IDS.npt_name_s, &value, true)) && (!IsStringEmpty (value.st_string_value_s)))
+	if (GetCurrentStringParameterValueFromParameterSet (param_set_p, PS_JOB_IDS.npt_name_s, &job_ids_s))
 		{
-			LinkedList *uuids_p = GetUUIDSList (value.st_string_value_s);
-
-			if (uuids_p)
+			if (!IsStringEmpty (job_ids_s))
 				{
-					service_p -> se_jobs_p = GetPreviousJobResults (uuids_p, data_p);
+					LinkedList *uuids_p = GetUUIDSList (job_ids_s);
 
-					if (! (service_p -> se_jobs_p))
+					if (uuids_p)
 						{
-							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get previous jobs for \"%s\"", value.st_string_value_s);
+							service_p -> se_jobs_p = GetPreviousJobResults (uuids_p, data_p);
+
+							if (! (service_p -> se_jobs_p))
+								{
+									PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to get previous jobs for \"%s\"", job_ids_s);
+								}
 						}
-				}
-			else
-				{
-					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to parse \"%s\" for ids", value.st_string_value_s);
+					else
+						{
+							PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to parse \"%s\" for ids", job_ids_s);
+						}
+
 				}
 
 		}		/* if (previous_job_ids_s) */
@@ -836,14 +837,11 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 
 			if (db_s)
 				{
-					Parameter *param_p = GetParameterFromParameterSetByName (param_set_p, db_s);
+					const bool *db_selected_flag_p = NULL;
 
-					/* Do we have a matching parameter? */
-					if (param_p)
+					if (GetCurrentBooleanParameterValueFromParameterSet (param_set_p, db_s, &db_selected_flag_p))
 						{
-							/* Is the database selected to search against? */
-							//if (CompareSharedTypeBooleanValue (& (param_p -> pa_current_value), true))
-							if (param_p -> pa_current_value.st_boolean_value)
+							if ((db_selected_flag_p != NULL) && (*db_selected_flag_p == true))
 								{
 									PolymarkerServiceJob *job_p = AllocatePolymarkerServiceJob (service_p, db_p, data_p);
 
@@ -894,14 +892,11 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 		{
 			ParameterGroup *group_p = NULL;
 			PolymarkerSequence *db_p = data_p -> psd_index_data_p;
-			SharedType def;
 			size_t i = 0;
 			GrassrootsServer *grassroots_p = GetGrassrootsServerFromService (data_p -> psd_base_data.sd_service_p);
 			char *group_s = GetLocalDatabaseGroupName (grassroots_p);
 
 			group_p = CreateAndAddParameterGroupToParameterSet (group_s, false, & (data_p -> psd_base_data), param_set_p);
-
-			InitSharedType (&def);
 
 			for (i = data_p -> psd_index_data_size; i > 0; -- i, ++ db_p)
 				{
@@ -909,9 +904,7 @@ static uint16 AddDatabaseParams (PolymarkerServiceData *data_p, ParameterSet *pa
 
 					if (db_s)
 						{
-							def.st_boolean_value = db_p -> ps_active_flag;
-
-							if (EasyCreateAndAddParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, PT_BOOLEAN, db_s, db_p -> ps_name_s, db_p -> ps_description_s, def, PL_ALL))
+							if (EasyCreateAndAddBooleanParameterToParameterSet (& (data_p -> psd_base_data), param_set_p, group_p, db_s, db_p -> ps_name_s, db_p -> ps_description_s, & (db_p -> ps_active_flag), PL_ALL))
 								{
 									++ num_added_databases;
 								}
