@@ -207,7 +207,7 @@ bool AddPrimer3PrefsParameters (ParameterSet *params_p, PolymarkerServiceData *d
 }
 
 
-bool GetPrimer3PrefsParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p)
+bool GetPrimer3PrefsParameterTypesForNamedParameters (const Service *service_p, const char *param_name_s, ParameterType *pt_p)
 {
 	bool success_flag = true;
 

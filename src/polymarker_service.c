@@ -65,11 +65,11 @@ static PolymarkerServiceData *AllocatePolymarkerServiceData (Service *service_p)
 
 static void FreePolymarkerServiceData (PolymarkerServiceData *data_p);
 
-static const char *GetPolymarkerServiceName (Service *service_p);
+static const char *GetPolymarkerServiceName (const Service *service_p);
 
-static const char *GetPolymarkerServiceDesciption (Service *service_p);
+static const char *GetPolymarkerServiceDesciption (const Service *service_p);
 
-static const char *GetPolymarkerServiceWebpage (Service *service_p);
+static const char *GetPolymarkerServiceWebpage (const Service *service_p);
 
 static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resource *resource_p, UserDetails *user_p);
 
@@ -87,7 +87,7 @@ static bool GetPolymarkerServiceConfig (PolymarkerServiceData *data_p, Grassroot
 static void CustomisePolymarkerServiceJob (Service * UNUSED_PARAM (service_p), ServiceJob *job_p);
 
 
-static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p);
+static bool GetPolymarkerServiceParameterTypesForNamedParameters (const Service *service_p, const char *param_name_s, ParameterType *pt_p);
 
 static bool GetDatabaseParameterTypeForNamedParameter (PolymarkerServiceData *data_p, const char *param_name_s, ParameterType *pt_p);
 
@@ -463,13 +463,13 @@ static bool ClosePolymarkerService (Service *service_p)
 }
  
  
-static const char *GetPolymarkerServiceName (Service * UNUSED_PARAM (service_p))
+static const char *GetPolymarkerServiceName (const Service * UNUSED_PARAM (service_p))
 {
 	return "Polymarker";
 }
 
 
-static const char *GetPolymarkerServiceDesciption (Service * UNUSED_PARAM (service_p))
+static const char *GetPolymarkerServiceDesciption (const Service * UNUSED_PARAM (service_p))
 {
 	return "PolyMarker is an automated bioinformatics pipeline for SNP assay development which increases "
 		"the probability of generating homoeologue-specific assays for polyploid wheat. PolyMarker generates "
@@ -478,7 +478,7 @@ static const char *GetPolymarkerServiceDesciption (Service * UNUSED_PARAM (servi
 }
 
 
-static const char *GetPolymarkerServiceWebpage (Service * UNUSED_PARAM (service_p))
+static const char *GetPolymarkerServiceWebpage (const Service * UNUSED_PARAM (service_p))
 {
 	return "http://www.polymarker.info/";
 }
@@ -533,7 +533,7 @@ static void ReleasePolymarkerServiceParameters (Service * UNUSED_PARAM (service_
 	FreeParameterSet (params_p);
 }
 
-static bool GetPolymarkerServiceParameterTypesForNamedParameters (struct Service *service_p, const char *param_name_s, ParameterType *pt_p)
+static bool GetPolymarkerServiceParameterTypesForNamedParameters (const Service *service_p, const char *param_name_s, ParameterType *pt_p)
 {
 	bool success_flag = true;
 
