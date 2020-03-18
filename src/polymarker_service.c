@@ -483,7 +483,7 @@ static const char *GetPolymarkerServiceDescription (const Service * UNUSED_PARAM
 
 static const char *GetPolymarkerServiceAlias (const Service * UNUSED_PARAM (service_p))
 {
-	return "polymarker";
+	return "polymarker/search";
 }
 
 
