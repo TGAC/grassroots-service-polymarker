@@ -67,7 +67,9 @@ static void FreePolymarkerServiceData (PolymarkerServiceData *data_p);
 
 static const char *GetPolymarkerServiceName (const Service *service_p);
 
-static const char *GetPolymarkerServiceDesciption (const Service *service_p);
+static const char *GetPolymarkerServiceDescription (const Service *service_p);
+
+static const char *GetPolymarkerServiceAlias (const Service *service_p);
 
 static const char *GetPolymarkerServiceWebpage (const Service *service_p);
 
@@ -144,7 +146,8 @@ ServicesArray *GetServices (UserDetails *user_p, GrassrootsServer *grassroots_p)
 
 							if (InitialiseService (service_p,
 								GetPolymarkerServiceName,
-								GetPolymarkerServiceDesciption,
+								GetPolymarkerServiceDescription,
+								GetPolymarkerServiceAlias,
 								GetPolymarkerServiceWebpage,
 								RunPolymarkerService,
 								IsFileForPolymarkerService,
@@ -469,12 +472,18 @@ static const char *GetPolymarkerServiceName (const Service * UNUSED_PARAM (servi
 }
 
 
-static const char *GetPolymarkerServiceDesciption (const Service * UNUSED_PARAM (service_p))
+static const char *GetPolymarkerServiceDescription (const Service * UNUSED_PARAM (service_p))
 {
 	return "PolyMarker is an automated bioinformatics pipeline for SNP assay development which increases "
 		"the probability of generating homoeologue-specific assays for polyploid wheat. PolyMarker generates "
 		"a multiple alignment between the target SNP sequence and a selected reference genome. "
 		"It then generates a mask with informative positions which are highlighted with respect to the target genome.";
+}
+
+
+static const char *GetPolymarkerServiceAlias (const Service * UNUSED_PARAM (service_p))
+{
+	return "polymarker";
 }
 
 
