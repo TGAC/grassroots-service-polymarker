@@ -452,7 +452,7 @@ ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *
 																		{
 																			PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, error_s);
 
-																			if (!AddErrorMessageToServiceJob (job_p, job_id_s, error_s))
+																			if (!AddParameterErrorMessageToServiceJob (job_p, PS_JOB_IDS.npt_name_s, PS_JOB_IDS.npt_type, error_s))
 																				{
 																					PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add error text for \"%s\"", job_id_s);
 																				}
