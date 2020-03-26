@@ -433,7 +433,7 @@ ServiceJobSet *GetPreviousJobResults (LinkedList *ids_p, PolymarkerServiceData *
 
 									if (polymarker_job_p -> psj_tool_p -> SetJobUUID (job_id))
 										{
-											if (AddServiceJobToService (service_p, (ServiceJob *) job_p, false))
+											if (AddServiceJobToService (service_p, (ServiceJob *) job_p))
 												{
 													if (polymarker_job_p -> psj_tool_p -> SetJobMetadata ())
 														{

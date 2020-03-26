@@ -856,7 +856,7 @@ static void PreparePolymarkerServiceJobs (const ParameterSet * const param_set_p
 
 									if (job_p)
 										{
-											if (!AddServiceJobToService (service_p, (ServiceJob *) job_p, false))
+											if (!AddServiceJobToService (service_p, (ServiceJob *) job_p))
 												{
 													PrintErrors (STM_LEVEL_SEVERE, __FILE__, __LINE__, "Failed to add ServiceJob to the ServiceJobSet for \"%s\"", db_s);
 													FreePolymarkerServiceJob (& (job_p -> psj_base_job));

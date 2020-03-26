@@ -106,7 +106,7 @@ ServiceJob *GetPolymarkerServiceJobFromJSON (struct Service *service_p, const js
 
 					polymarker_job_p -> psj_tool_p = NULL;
 
-					if (InitServiceJobFromJSON (& (polymarker_job_p -> psj_base_job), job_json_p, grassroots_p))
+					if (InitServiceJobFromJSON (& (polymarker_job_p -> psj_base_job), job_json_p, service_p, grassroots_p))
 						{
 							const char *tool_type_s = GetJSONString (job_json_p, PS_TOOL_S);
 
