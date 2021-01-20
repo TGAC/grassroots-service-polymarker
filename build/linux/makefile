@@ -57,5 +57,7 @@ LDFLAGS += -L$(DIR_JANSSON_LIB) -ljansson \
 
 
 export CC := g++
+
+export
 include $(DIR_BUILD_CONFIG)/generic_makefiles/shared_library.makefile
 
