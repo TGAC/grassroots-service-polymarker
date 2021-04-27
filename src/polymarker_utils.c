@@ -673,7 +673,16 @@ static bool GetPosition (const json_t *polymorphism_p, const char * const key_s,
 
 			if (position_p)
 				{
-					success_flag = GetJSONInteger (position_p, "faldo:position", (int *) index_p);
+					json_int_t index =- -1;
+
+					if (GetJSONInteger (position_p, "faldo:position", &index))
+						{
+							if ((index >= 0) && (index <= UINT32_MAX))
+								{
+									*index_p = (uint32) index;
+									success_flag = true;
+								}
+						}
 				}		/* if (position_p) */
 
 		}		/* if (locus_p) */
