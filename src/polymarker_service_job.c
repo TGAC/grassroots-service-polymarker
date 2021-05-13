@@ -15,6 +15,8 @@
 
 #include "string_utils.h"
 
+#include "uuid_util.h"
+
 /*
  * STATIC DECLARATIONS
  */

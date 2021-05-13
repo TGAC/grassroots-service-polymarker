@@ -28,6 +28,8 @@
 #include "streams.h"
 #include "string_utils.h"
 
+#include "uuid_util.h"
+
 const char * const PolymarkerTool :: PT_JOB_DIR_S = "job_dir";
 
 const char * const PolymarkerTool :: PT_METADATA_FILENAME_S = "metadata";

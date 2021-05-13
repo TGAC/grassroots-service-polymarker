@@ -34,6 +34,8 @@
 #include "system_async_task.h"
 #include "streams.h"
 
+#include "uuid_util.h"
+
 
 #ifdef _DEBUG
 	#define ASYNC_SYSTEM_POLYMARKER_TOOL_DEBUG (STM_LEVEL_FINE)
