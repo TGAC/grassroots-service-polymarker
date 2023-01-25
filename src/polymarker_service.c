@@ -75,13 +75,13 @@ static const char *GetPolymarkerServiceAlias (const Service *service_p);
 
 static const char *GetPolymarkerServiceWebpage (const Service *service_p);
 
-static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resource *resource_p, UserDetails *user_p);
+static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, DataResource *resource_p, UserDetails *user_p);
 
 static void ReleasePolymarkerServiceParameters (Service *service_p, ParameterSet *params_p);
 
 static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails *user_p, ProvidersStateTable *providers_p);
 
-static  ParameterSet *IsFileForPolymarkerService (Service *service_p, Resource *resource_p, Handler *handler_p);
+static  ParameterSet *IsFileForPolymarkerService (Service *service_p, DataResource *resource_p, Handler *handler_p);
 
 static bool ClosePolymarkerService (Service *service_p);
 
@@ -495,7 +495,7 @@ static const char *GetPolymarkerServiceWebpage (const Service * UNUSED_PARAM (se
 }
 
 
-static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, Resource * UNUSED_PARAM (resource_p), UserDetails * UNUSED_PARAM (user_p))
+static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, DataResource * UNUSED_PARAM (resource_p), UserDetails * UNUSED_PARAM (user_p))
 {
 	ParameterSet *param_set_p = AllocateParameterSet ("Polymarker service parameters", "The parameters used for the Polymarker service");
 	
@@ -822,7 +822,7 @@ static bool RunPolymarkerJob (PolymarkerServiceJob *job_p, ParameterSet *param_s
 }
 
 
-static  ParameterSet *IsFileForPolymarkerService (Service * UNUSED_PARAM (service_p), Resource * UNUSED_PARAM (resource_p), Handler * UNUSED_PARAM (handler_p))
+static  ParameterSet *IsFileForPolymarkerService (Service * UNUSED_PARAM (service_p), DataResource * UNUSED_PARAM (resource_p), Handler * UNUSED_PARAM (handler_p))
 {
 	return NULL;
 }

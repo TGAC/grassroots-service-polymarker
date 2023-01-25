@@ -286,7 +286,7 @@ bool AddPolymarkerResult (PolymarkerServiceJob *polymarker_job_p, const char *uu
 				{
 					if (tool_p -> AddSectionToResult (result_json_p, "exons_genes_and_contigs.fa", "exons_genes_and_contigs", 0))
 						{
-							json_t *polymarker_result_json_p = GetResourceAsJSONByParts (PROTOCOL_INLINE_S, NULL, uuid_s, result_json_p);
+							json_t *polymarker_result_json_p = GetDataResourceAsJSONByParts (PROTOCOL_INLINE_S, NULL, uuid_s, result_json_p);
 
 							if (polymarker_result_json_p)
 								{
