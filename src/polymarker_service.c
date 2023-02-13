@@ -37,6 +37,7 @@
 
 #include "uuid_util.h"
 
+#include "service_util.h"
 
 #ifdef _DEBUG
 	#define POLYMARKER_SERVICE_DEBUG	(STM_LEVEL_FINEST)
