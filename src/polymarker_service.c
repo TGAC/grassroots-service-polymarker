@@ -76,11 +76,11 @@ static const char *GetPolymarkerServiceAlias (const Service *service_p);
 
 static const char *GetPolymarkerServiceWebpage (const Service *service_p);
 
-static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, DataResource *resource_p, UserDetails *user_p);
+static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, DataResource *resource_p, User *user_p);
 
 static void ReleasePolymarkerServiceParameters (Service *service_p, ParameterSet *params_p);
 
-static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails *user_p, ProvidersStateTable *providers_p);
+static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, User *user_p, ProvidersStateTable *providers_p);
 
 static  ParameterSet *IsFileForPolymarkerService (Service *service_p, DataResource *resource_p, Handler *handler_p);
 
@@ -132,7 +132,7 @@ static bool AddDatabaseForIndexing (const PolymarkerSequence *db_p, json_t *json
 /*
  * API FUNCTIONS
  */
-ServicesArray *GetServices (UserDetails *user_p, GrassrootsServer *grassroots_p)
+ServicesArray *GetServices (User *user_p, GrassrootsServer *grassroots_p)
 {
 	Service *service_p = (Service *) AllocMemory (sizeof (Service));
 
@@ -496,7 +496,7 @@ static const char *GetPolymarkerServiceWebpage (const Service * UNUSED_PARAM (se
 }
 
 
-static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, DataResource * UNUSED_PARAM (resource_p), UserDetails * UNUSED_PARAM (user_p))
+static ParameterSet *GetPolymarkerServiceParameters (Service *service_p, DataResource * UNUSED_PARAM (resource_p), User * UNUSED_PARAM (user_p))
 {
 	ParameterSet *param_set_p = AllocateParameterSet ("Polymarker service parameters", "The parameters used for the Polymarker service");
 	
@@ -577,7 +577,7 @@ static bool GetPolymarkerServiceParameterTypesForNamedParameters (const Service 
 }
 
 
-static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, UserDetails * UNUSED_PARAM (user_p), ProvidersStateTable * UNUSED_PARAM (providers_p))
+static ServiceJobSet *RunPolymarkerService (Service *service_p, ParameterSet *param_set_p, User * UNUSED_PARAM (user_p), ProvidersStateTable * UNUSED_PARAM (providers_p))
 {
 	PolymarkerServiceData *data_p = (PolymarkerServiceData *) (service_p -> se_data_p);
 	const char *job_ids_s = NULL;
