@@ -151,7 +151,7 @@ bool CreateMarkerListFileByGroups (const char *marker_file_s, const ParameterSet
 
 									if (reg_exp_s)
 										{
-											if (SetPattern (reg_ex_p, reg_exp_s, 0))
+											if (SetPattern (reg_ex_p, (unsigned char *) reg_exp_s, 0))
 												{
 													ParameterGroupNode *group_node_p = (ParameterGroupNode *) (param_set_p -> ps_grouped_params_p -> ll_head_p);
 
